@@ -1,6 +1,0 @@
-# Exclude local data files from Netlify deploys
-# Docs: https://docs.netlify.com/site-deploys/ignore-files/
-
-data/
-data/**
-*.md.tmp

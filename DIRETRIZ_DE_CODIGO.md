@@ -21,57 +21,84 @@ Este documento estabelece como o "agente" de IA deve trabalhar na construção d
   - Procurar comentários com `// TODO` e `/* TODO */`.
 - Testar localmente abrindo `index.html`. Se a feature depender de `fetch` a arquivos locais, usar um servidor estático.
 
-## Deploy e Publicação (Netlify)
+## Deploy e Publicação (Render)
 
-- Credenciais/conta: tratadas pelo Netlify CLI (login local). Não se coloca conta no `netlify.toml`.
-- URL publicada: <https://personal-leveling-rpg.netlify.app>
-- Comandos principais:
+- **Backend**: Web Service com Node.js/Express
+- **Frontend**: Static Site com build do Vite
+- **Database**: PostgreSQL gerenciado pelo Render
+- **URLs de produção**: Configuradas no Render Dashboard
+
+### Comandos de Desenvolvimento Local
 
 ```bash
-# Status da conta/site atual
-npx --yes netlify-cli@latest status
+# Instalar dependências
+npm run install:all
 
-# Criar e vincular um novo site (interativo) OU vincular a um existente
-npx --yes netlify-cli@latest init
-# ou
-npx --yes netlify-cli@latest link
+# Rodar ambos os serviços
+npm run dev
 
-# Deploy de produção (usa netlify.toml)
-npx --yes netlify-cli@latest deploy --dir . --prod --message "Deploy"
+# Rodar individualmente
+npm run dev:backend  # porta 3001
+npm run dev:frontend # porta 5173
+
+# Migrações do banco
+cd backend && npm run migrate
 ```
 
-- O vínculo local fica em `.netlify/state.json` (diretório já ignorado no `.gitignore`).
+### Deploy no Render
+
+1. **PostgreSQL Database**: Criar via Render Dashboard
+2. **Backend API**: Web Service com Node.js
+3. **Frontend**: Static Site com build do Vite
+
+Ver guia completo em: [`docs/features/deploy-render.md`](docs/features/deploy-render.md)
 
 ## Padrões de Código
 
-- HTML: Semântico. Classes utilitárias moderadas. Evitar inline styles.
-- CSS: Variáveis CSS em `:root`. Organização por camadas: base, layout, componentes, utilitários.
-- JS: ES6+. Modular por funções puras onde possível. Evitar poluir o escopo global; expor um único namespace `App`.
-- Armazenamento: Usar `App.db` (wrapper de `localStorage`). Chaves namespaced: `app:<nome>`.
-- Erros: Tratar exceções com mensagens claras no console e feedback visual quando necessário.
+### Backend (Node.js/Express)
+- **Estrutura**: Modular com separação de rotas, middleware e configurações
+- **Banco de dados**: PostgreSQL com migrations versionadas
+- **Autenticação**: JWT (implementação futura)
+- **Validação**: Middleware de validação de dados
+- **Logs**: Estruturados e centralizados
+- **Erros**: Tratamento consistente com códigos HTTP apropriados
 
-### CSS Modular por Componentes
+### Frontend (React)
+- **Componentes**: Funcionais com hooks
+- **Estado**: Context API para estado global, useState para local
+- **Roteamento**: React Router para navegação
+- **Estilos**: CSS modules ou styled-components
+- **API**: Axios para comunicação com backend
+- **Validação**: Formulários com validação client-side
 
-Para maximizar reuso e clareza, os estilos foram modularizados em arquivos de componentes dentro de `assets/styles/components/`:
+### Banco de Dados (PostgreSQL)
+- **Schema**: Migrations versionadas
+- **Constraints**: Validações no nível do banco
+- **Índices**: Para performance de queries
+- **Triggers**: Para campos automáticos (updated_at)
 
-- `components/buttons.css`: botões genéricos (`.btn`, `.btn-primary`, `.btn-ghost`, tamanhos `.-sm`/`.-lg`) e botões de ícone (`.btn-icon`, `.icon-btn`).
-- `components/sidebar.css`: sidebar overlay (`.sidebar`), lista de navegação (`.nav-list`) e backdrop (`.sidebar-backdrop`).
-- `components/layout.css`: utilitários de grid (`.grid`, `.grid-3`), container e espaçamentos (`.mt-*`).
+### Estrutura de Componentes React
 
-O arquivo `assets/styles/main.css` importa os componentes nesta ordem:
+Para maximizar reuso e clareza, os componentes React estão organizados em `frontend/src/components/`:
 
-1. `tokens.css`
-2. `components/buttons.css`
-3. `components/sidebar.css`
-4. `components/layout.css`
+- **Componentes de UI**: Reutilizáveis e independentes
+- **Componentes de Página**: Específicos para cada rota
+- **Contextos**: Para estado global (AuthContext)
+- **Hooks Customizados**: Para lógica reutilizável
 
-Diretrizes para adicionar um novo componente CSS:
+### Estrutura de Estilos
 
-1. Criar arquivo em `assets/styles/components/<componente>.css`.
-2. Manter variáveis e tokens em `tokens.css` sempre que possível.
-3. Importar o novo arquivo em `assets/styles/main.css` após `tokens.css`.
-4. Documentar o componente (intenção, classes públicas, estados) em `docs/DESIGN_GUIDE.md` na seção de Componentes.
-5. Evitar dependências cíclicas entre componentes; componentes devem ser independentes.
+- **CSS Modules**: Para estilos específicos de componentes
+- **CSS Global**: Para estilos base e utilitários
+- **Design System**: Tokens de design consistentes
+
+### Diretrizes para Componentes
+
+1. Criar componente em `frontend/src/components/<Component>.jsx`
+2. Criar estilos em `frontend/src/components/<Component>.css`
+3. Usar props para configuração
+4. Implementar PropTypes para validação
+5. Manter componentes pequenos e focados
 
 ## Documentação
 
@@ -106,17 +133,19 @@ Diretrizes para adicionar um novo componente CSS:
   - Seja conciso; mova detalhes para `docs/features/<feature>.md`.
   - Linke arquivos/rotas relevantes entre crases (ex.: `app.html`, `assets/scripts/main.js`).
 
-### Componentes HTML (parciais) e Loader
+### Roteamento e Navegação
 
-- Parciais HTML vivem em `assets/components/` (`header.html`, `sidebar.html`, `footer.html`).
-- Páginas usam placeholders com `data-component`:
-  - Ex.: `<div data-component="header"></div>`, `<div data-component="sidebar"></div>`, `<div data-component="footer"></div>`
-- O loader em `assets/scripts/main.js` (`loadComponents()`) faz `fetch` das parciais e injeta antes de `ui.bind()`.
-- Importante: para funcionar, abrir o site via servidor HTTP (ex.: `http://127.0.0.1:8080/`), pois `fetch` de arquivos locais não funciona com `file://`.
-- Para adicionar novo componente HTML:
-  1. Criar `assets/components/<nome>.html`.
-  2. Adicionar mapeamento no objeto `mapper` de `loadComponents()`.
-  3. Inserir `<div data-component="<nome>"></div>` na página.
+- **React Router**: Configurado em `frontend/src/App.jsx`
+- **Rotas Protegidas**: Implementadas com `ProtectedRoute`
+- **Navegação**: Usando `useNavigate` e `Link` do React Router
+- **Estado de Autenticação**: Gerenciado pelo `AuthContext`
+
+### API e Comunicação
+
+- **Axios**: Configurado para comunicação com backend
+- **Proxy**: Configurado no Vite para desenvolvimento
+- **Endpoints**: Documentados em `docs/features/deploy-render.md`
+- **Tratamento de Erros**: Centralizado e consistente
 
 ## Revisão e Qualidade
 
@@ -132,24 +161,32 @@ Diretrizes para adicionar um novo componente CSS:
   - Fonte da verdade do planejamento e progresso. Consulte antes de iniciar uma tarefa para saber prioridade e estado atual. Atualize ao concluir etapas.
 - `DIRETRIZ_DE_CODIGO.md` (raiz)
   - Este documento. Ponto de partida para entender processos, padrões e onde buscar informação.
-- `index.html`
-  - Estrutura semântica da página e pontos de montagem da UI. Ver comentários para ganchos de renderização.
-- `assets/styles/main.css`
-  - Importa tokens e os CSS de componentes. Ajuste aqui apenas a ordem de import e estilos base/globais.
-- `assets/styles/components/`
-  - Diretório com estilos modulares por componente (`buttons.css`, `sidebar.css`, `layout.css`, ...).
-- `assets/scripts/main.js`
-  - Namespace `App` (db/ui/init). Ponto principal para lógica de UI e persistência local.
-- `data/seed.json`
-  - Dados iniciais de exemplo. Útil para testes e resets do ambiente local.
-- `docs/README.md`
-  - Arquitetura geral e fluxo de inicialização.
+
+### Backend
+- `backend/src/index.js`
+  - Ponto de entrada do servidor Express
+- `backend/src/routes/`
+  - Rotas da API (users, activities, tasks)
+- `backend/src/db/`
+  - Configuração do banco e migrations
+- `backend/.env`
+  - Variáveis de ambiente para desenvolvimento
+
+### Frontend
+- `frontend/src/App.jsx`
+  - Configuração de rotas e estrutura principal
+- `frontend/src/components/`
+  - Componentes React (Login, Dashboard, Activities, Tasks)
+- `frontend/src/contexts/`
+  - Contextos para estado global (AuthContext)
+- `frontend/vite.config.js`
+  - Configuração do Vite e proxy
+
+### Documentação
 - `docs/IDEIA_GERAL.md`
   - Objetivos, visão, funcionalidades e escopo do produto.
-- `docs/DESIGN_GUIDE.md`
-  - Diretrizes de design (tokens, layout, componentes, acessibilidade, estética). Use como referência visual ao construir UI.
-- `docs/templates/FEATURE_GUIDE.md`
-  - Template para documentar qualquer nova feature. Sempre criar a doc antes de implementar.
+- `docs/features/deploy-render.md`
+  - Guia completo de deploy no Render
 
 ## Plano de Projeto (uso do PLAN.md)
 

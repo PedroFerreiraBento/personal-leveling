@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "build": "echo 'No build step needed for Node.js'",
+    "build": "echo 'Building backend...' && npm run migrate",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js"
   },

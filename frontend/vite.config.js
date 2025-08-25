@@ -16,5 +16,8 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true
+  },
+  define: {
+    'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://personal-leveling-api.onrender.com')
   }
 })

@@ -1,0 +1,36 @@
+# Netlify configuration for a static site (Personal Leveling)
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+
+# Ensure the service worker isn't cached aggressively, so updates are picked up
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# Basic security headers (optional but recommended)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+
+# API routes -> Netlify Functions
+[[redirects]]
+  from = "/api/users*"
+  to = "/.netlify/functions/api-users/:splat"
+  status = 200
+
+# Activities presets API
+[[redirects]]
+  from = "/api/activities*"
+  to = "/.netlify/functions/api-activities/:splat"
+  status = 200
+
+# No redirects required for SPA router

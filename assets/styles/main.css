@@ -1,0 +1,266 @@
+/*
+  main.css
+  - Base de estilos para o projeto.
+  - Organização: tokens (import), reset, base, layout, componentes, utilitários.
+*/
+@import url('./tokens.css');
+@import url('./components/buttons.css');
+@import url('./components/sidebar.css');
+@import url('./components/layout.css');
+@import url('./components/background.css');
+
+/* Reset simplificado */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+img { max-width: 100%; display: block; }
+button { cursor: pointer; }
+
+/* A11Y: garantir contraste adequado para textos auxiliares/muted (Bootstrap e custom) */
+.text-muted { color: var(--muted) !important; }
+.form-text { color: var(--muted) !important; }
+
+/* A11Y: títulos e labels com contraste forte no tema escuro */
+:root:not([data-theme='light']) h1,
+:root:not([data-theme='light']) h2,
+:root:not([data-theme='light']) h3,
+:root:not([data-theme='light']) h4,
+:root:not([data-theme='light']) label,
+:root:not([data-theme='light']) .form-label {
+  color: var(--text);
+}
+/* Evita qualquer opacidade herdada em labels no dark */
+:root:not([data-theme='light']) .form-label,
+:root:not([data-theme='light']) label { opacity: 1; font-weight: 600; }
+
+/* H4 com classe .small deve manter legibilidade no escuro */
+:root:not([data-theme='light']) h4.small { color: var(--text); }
+
+/* Modal Bootstrap — tema escuro consistente */
+:root:not([data-theme='light']) .modal-content {
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+:root:not([data-theme='light']) .modal-header,
+:root:not([data-theme='light']) .modal-footer {
+  border-color: var(--border);
+}
+:root:not([data-theme='light']) .modal-title { color: var(--text); }
+:root:not([data-theme='light']) .modal-body .text-muted,
+:root:not([data-theme='light']) .modal-body .form-text { color: var(--muted) !important; }
+
+/* Skip link (acessibilidade) */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  left: 16px;
+  top: 12px;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(17,24,39,0.9);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  z-index: 100;
+}
+
+/* Base */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+main { flex: 1 0 auto; }
+
+
+.container {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.site-header, .site-footer {
+  background: rgba(17,24,39,0.60);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.site-header {
+  border-bottom: 1px solid rgba(148,163,184,0.22);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  transition: background var(--dur) var(--easing), box-shadow var(--dur) var(--easing);
+  z-index: 10;
+}
+.site-header:hover { background: rgba(17,24,39,0.88); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.site-header h1 {
+  font-size: var(--fs-24);
+  line-height: 1.2;
+  margin: 0;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 18px rgba(6,182,212,0.25);
+}
+
+.site-footer {
+  border-top: 1px solid rgba(148,163,184,0.22);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.25);
+}
+.site-footer .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+/* Footer text legibility on dark background */
+.site-footer .text-muted { color: rgba(229,231,235,0.82); }
+
+/* Sidebar moved to components/sidebar.css */
+
+h1, h2, h3 { margin: 0 0 8px; }
+
+/* Componentes */
+.actions { display: flex; gap: 8px; margin: 16px 0; }
+button {
+  background: var(--primary);
+  color: #04110a;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-weight: 600;
+  transition: transform var(--dur-fast) var(--easing), filter var(--dur) ease;
+}
+button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+button:active { transform: translateY(0); filter: brightness(0.98); }
+button.danger { background: var(--danger); color: #1b0b0b; }
+button.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+button.ghost:hover {
+  filter: none;
+  box-shadow: 0 0 0 2px rgba(6,182,212,0.18) inset;
+  border-color: var(--accent);
+}
+
+/* Acessibilidade: foco visível */
+button:focus-visible,
+ [href]:focus-visible,
+ input:focus-visible,
+ select:focus-visible,
+ textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(6,182,212,0.18);
+}
+
+.list { display: grid; gap: 8px; margin-top: 12px; }
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.card + .card { margin-top: 12px; }
+.card h3 { margin: 0 0 4px; }
+.card p { margin: 0; color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* Layout utilities moved to components/layout.css */
+
+/* Progress bars */
+.progress {
+  height: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  box-shadow: 0 0 12px rgba(6,182,212,0.5);
+}
+.progress--sm { height: 8px; box-shadow: none; }
+
+/* Badges / Chips */
+.badge { display: inline-block; padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: var(--fs-12); }
+
+/* Spacing utils */
+.mt-6 { margin-top: 6px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+
+/* Width helpers for progress */
+.w-62 > i { width: 62%; }
+.w-65 > i { width: 65%; }
+.w-72 > i { width: 72%; }
+
+/* Densidade compacta */
+[data-density='compact'] .container { padding: 12px; }
+[data-density='compact'] .site-header .container,
+[data-density='compact'] .site-footer .container { padding-top: 8px; padding-bottom: 8px; }
+[data-density='compact'] .site-header h1 { font-size: var(--fs-20); }
+[data-density='compact'] .header-actions { gap: 6px; }
+[data-density='compact'] button { padding: 8px 10px; }
+[data-density='compact'] .list { gap: 6px; }
+[data-density='compact'] .card { padding: 10px; }
+[data-density='compact'] .badge { padding: 2px 6px; }
+
+/* Tema claro: ajustar contrastes de vidro, cartões e barras */
+:root[data-theme='light'] .site-header,
+:root[data-theme='light'] .site-footer {
+  background: rgba(255,255,255,0.75);
+  border-color: var(--border);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+:root[data-theme='light'] .site-header:hover { background: rgba(255,255,255,0.90); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+/* Footer text in light theme should still be readable but subtle */
+:root[data-theme='light'] .site-footer .text-muted { color: rgba(15,23,42,0.62); }
+
+:root[data-theme='light'] .card {
+  background: linear-gradient(180deg, rgba(2,6,23,0.02), rgba(2,6,23,0.01));
+}
+
+:root[data-theme='light'] .progress {
+  background: rgba(2,6,23,0.08);
+}
+
+/* Tema claro: botões com contraste adequado */
+:root[data-theme='light'] button {
+  color: #052e16; /* verde muito escuro para contraste sobre primary */
+}
+:root[data-theme='light'] button.danger { color: #3b0a0a; }
+:root[data-theme='light'] button.ghost {
+  background: rgba(2,6,23,0.02);
+}
+/* manter estados visíveis no claro */
+:root[data-theme='light'] button:hover { filter: brightness(1.02); }

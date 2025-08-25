@@ -1,0 +1,33 @@
+# Dependencies and build artifacts
+node_modules/
+dist/
+build/
+.tmp/
+.tmp*/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Env / secrets
+.env
+.env.*
+
+# Coverage / reports
+coverage/
+*.lcov
+
+# Netlify / local tools
+.netlify/
+
+# Cache
+.cache/

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Personal Leveling — App</title>
+    <meta name="description" content="Aplicação web estática com armazenamento local." />
+    <meta name="theme-color" content="#111827" />
+    <link rel="icon" type="image/webp" href="assets/images/Favicon.webp" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/icons/icon-180.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="assets/styles/main.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1&display=swap" />
+  </head>
+  <body>
+    <a href="#app" class="skip-link">Pular para o conteúdo</a>
+
+    <div data-component="background"></div>
+    <div data-component="header"></div>
+    <div data-component="sidebar"></div>
+
+    <main id="app" class="container layout">
+      <section class="content">
+        <!-- Conteúdo movido de index.html original -->
+        <section class="card">
+          <div class="d-flex align-items-center justify-content-between">
+            <h2 class="mb-0">Seu Progresso</h2>
+            <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#helpActivityModal" aria-label="Ajuda sobre registro de atividades">
+              Ajuda
+            </button>
+          </div>
+          <p><strong>Nível <span id="levelValue">1</span></strong> · <span class="muted" id="xpText">0 XP</span></p>
+          <div class="progress w-62" aria-hidden="true"><i id="xpProgress"></i></div>
+          <form id="activityForm" class="mt-8" autocomplete="off">
+            <input type="hidden" id="activitySubmitMode" value="" />
+            <div class="grid-3">
+              <label>
+                <span class="muted">Título</span>
+                <input id="activityTitle" class="form-control" type="text" required placeholder="Ex.: Estudar 25m" />
+              </label>
+              <label>
+                <span class="muted">Categoria</span>
+                <select id="activityCategory" class="form-select" aria-label="Categoria da atividade">
+                  <option value="">Selecione...</option>
+                  <option value="estudo">Estudo</option>
+                  <option value="leitura">Leitura</option>
+                  <option value="treino">Treino</option>
+                  <option value="exercicio">Exercício</option>
+                  <option value="saude">Saúde</option>
+                  <option value="meditacao">Meditação</option>
+                  <option value="trabalho">Trabalho</option>
+                  <option value="projeto">Projeto</option>
+                  <option value="networking">Networking</option>
+                  <option value="social">Social</option>
+                  <option value="financas">Finanças</option>
+                  <option value="habito">Hábito</option>
+                </select>
+                <div id="activityCategoryInfo" class="muted small mt-1" aria-live="polite"></div>
+              </label>
+              <label>
+                <span class="muted">Duração (min)</span>
+                <input id="activityDuration" class="form-control" type="number" min="1" step="1" placeholder="25" />
+              </label>
+            </div>
+            <details class="mt-6">
+              <summary class="muted">Avançado</summary>
+              <div class="grid-3 mt-4">
+                <label>
+                  <span class="muted">Data e hora</span>
+                  <input id="activityTimestamp" class="form-control" type="datetime-local" />
+                </label>
+                <label>
+                  <span class="muted">Dificuldade</span>
+                  <select id="activityDifficulty" class="form-select">
+                    <option value="normal" selected>Normal</option>
+                    <option value="desafiador">Desafiador (+15%)</option>
+                    <option value="extremo">Extremo (+30%)</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="muted">Tags (separadas por vírgula)</span>
+                  <input id="activityTags" class="form-control" type="text" placeholder="foco, manhã, deep work" />
+                </label>
+              </div>
+              <div id="activityDynamicFields" class="mt-4"></div>
+              <label class="mt-4 block">
+                <span class="muted">Notas</span>
+                <textarea id="activityNotes" class="form-control" rows="3" placeholder="Contexto livre"></textarea>
+              </label>
+            </details>
+            <div class="actions mt-6">
+              <button type="submit" class="btn btn-primary" id="addActivityBtn">Registrar atividade</button>
+              <button type="button" class="btn" id="addActivityRepeatBtn" title="Salvar e repetir">Salvar e repetir</button>
+              <button id="viewHistoryBtn" class="btn btn-ghost" type="button">Ver histórico</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Streak</h2>
+          <p id="streakText" aria-live="polite">Calculando sequência...</p>
+          <span id="streakBadge" class="badge" aria-hidden="true">Bônus XP +0%</span>
+          <hr class="mt-6" />
+          <h3 class="mt-4">Streak Semanal</h3>
+          <p id="weeklyStreakText" class="muted" aria-live="polite">Calculando sequência semanal...</p>
+          <span id="weeklyStreakBadge" class="badge" aria-hidden="true">Semanas 0</span>
+          <div class="actions mt-8">
+            <button id="clearDbBtn" class="btn danger">Limpar Dados (demo)</button>
+            <button id="exportJsonBtn" class="btn btn-ghost" type="button" aria-label="Exportar dados para JSON">Exportar</button>
+            <button id="importJsonBtn" class="btn" type="button" aria-label="Importar dados de JSON">Importar</button>
+            <input id="importJsonInput" type="file" accept="application/json,.json" hidden aria-hidden="true" />
+          </div>
+        </section>
+
+        <section class="grid-3 mt-12">
+          <div class="card">
+            <h3>Missões de Hoje</h3>
+            <p class="muted" id="missionsCounter">0/0 concluídas</p>
+            <div id="missionsList"></div>
+            <div class="actions"><button>Ir para Missões</button></div>
+          </div>
+          <div class="card">
+            <h3>Conquistas Recentes</h3>
+            <ul id="achievementsList" class="mt-2"></ul>
+          </div>
+          <div class="card">
+            <h3>Atributos</h3>
+            <div id="attributesBox" class="mt-2"></div>
+          </div>
+        </section>
+
+        <section class="grid-3 mt-12">
+          <div class="card">
+            <h3>Missões da Semana</h3>
+            <p class="muted" id="weeklyMissionsCounter">0/0 concluídas</p>
+            <div class="mt-4" aria-label="Filtros de missões">
+              <label for="missionsFilterStatus" class="muted">Status</label>
+              <select id="missionsFilterStatus" name="missionsFilterStatus" aria-label="Filtrar missões por status">
+                <option value="all">Todas</option>
+                <option value="pending">Pendentes</option>
+                <option value="done">Concluídas</option>
+              </select>
+              <label for="missionsFilterType" class="muted ml-4">Tipo</label>
+              <select id="missionsFilterType" name="missionsFilterType" aria-label="Filtrar missões por tipo">
+                <option value="all">Todas</option>
+                <option value="daily">Diárias</option>
+                <option value="weekly">Semanais</option>
+              </select>
+            </div>
+            <div id="weeklyMissionsList"></div>
+          </div>
+          <div class="card">
+            <h3>Presets de Atividade</h3>
+            <div class="actions mt-4" id="activityPresets">
+              <button class="btn" data-preset-title="Estudo" data-preset-category="estudo" data-preset-duration="25">Estudo 25m</button>
+              <button class="btn" data-preset-title="Leitura" data-preset-category="leitura" data-preset-duration="10">Leitura 10m</button>
+              <button class="btn" data-preset-title="Exercício" data-preset-category="saude" data-preset-duration="20">Exercício 20m</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Heatmap de Streak (mês)</h3>
+            <div id="streakHeatmap" class="mt-4" aria-label="Mapa de atividade diário"></div>
+          </div>
+        </section>
+
+        <section class="mt-12">
+          <h3>Atividades Recentes</h3>
+          <div class="actions mt-4" aria-label="Filtros de atividades">
+            <label for="activitiesFilterCategory" class="muted">Categoria</label>
+            <select id="activitiesFilterCategory" name="activitiesFilterCategory" aria-label="Filtrar atividades por categoria">
+              <option value="all">Todas</option>
+            </select>
+            <label for="activitiesFilterInterval" class="muted">Intervalo</label>
+            <select id="activitiesFilterInterval" name="activitiesFilterInterval" aria-label="Filtrar atividades por intervalo">
+              <option value="all">Todas</option>
+              <option value="today">Hoje</option>
+              <option value="week">Semana</option>
+            </select>
+          </div>
+          <div id="itemsList"></div>
+        </section>
+
+        <section class="mt-12">
+          <section class="mt-12">
+            <h3>Estatísticas</h3>
+            <h4 class="mt-4">Por Categoria</h4>
+            <ul id="statsByCategory" class="mt-2"></ul>
+            <h4 class="mt-6">Por Dia</h4>
+            <ul id="statsByDay" class="mt-2"></ul>
+            <h4 class="mt-6">Tempo por Categoria (min)</h4>
+            <ul id="timeByCategory" class="mt-2"></ul>
+            <h4 class="mt-6">Tempo por Dia (min)</h4>
+            <ul id="timeByDay" class="mt-2"></ul>
+            <h4 class="mt-6">Métricas Semanais</h4>
+            <h5 class="mt-2">Totais por Categoria (Semana)</h5>
+            <ul id="weeklyStatsByCategory" class="mt-2"></ul>
+            <h5 class="mt-6">Evolução (últimos 7 dias, minutos)</h5>
+            <ul id="weeklyTrend7d" class="mt-2"></ul>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <div data-component="footer"></div>
+
+    <!-- Help Modal: Activity -->
+    <div class="modal fade" id="helpActivityModal" tabindex="-1" aria-labelledby="helpActivityModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="helpActivityModalLabel">Como registrar atividades</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <ol class="mb-3">
+              <li><strong>Escolha um preset</strong> em "Presets de Atividade" para preencher Título, Categoria e Duração automaticamente.</li>
+              <li><strong>Campos dinâmicos</strong>: se o preset tiver <code>metricsSpec.fields</code>, eles aparecem em "Avançado". Preencha-os (ex.: repetições, distância, intensidade).</li>
+              <li><strong>Cálculo de baseUnits</strong>: o sistema soma os <em>termos</em> de <code>metricsSpec.baseUnits.terms</code> (campo × peso), com limites min/max quando definidos.</li>
+              <li><strong>Pesos de atributos</strong>: se o preset tiver <code>scoring.attrWeights</code>, eles substituem os pesos padrão da categoria na progressão.</li>
+              <li><strong>Categoria</strong> é normalizada automaticamente (ex.: "Exercício" → <code>exercicio</code>) para filtros e estatísticas.</li>
+              <li>Use <strong>Dificuldade</strong>, <strong>Tags</strong> e <strong>Notas</strong> conforme necessário.</li>
+              <li>Clique em <strong>Registrar atividade</strong> ou <strong>Salvar e repetir</strong> para registrar várias semelhantes.</li>
+            </ol>
+            <p class="mb-0"><small>Dúvidas? Ajuste seus presets em <em>Atividades → Tipos de Atividade (Presets)</em>.</small></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load shared components (header, footer, sidebar, background) -->
+    <script src="assets/scripts/components.js"></script>
+    <!-- Auth first: ensure user is logged in before running main app -->
+    <script src="assets/scripts/auth.js"></script>
+    <script>
+      if (window.App && App.auth && typeof App.auth.requireAuth === 'function') {
+        App.auth.requireAuth();
+      }
+    </script>
+    <script src="assets/scripts/main.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "personal-leveling",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Personal Leveling static site with Netlify Functions for users API",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'Static site - no build'"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.34.1"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^6.3.0"
+  }
+}

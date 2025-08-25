@@ -1,0 +1,67 @@
+/*
+  tokens.css — Design Tokens centralizados
+  Inspirado no DESIGN_GUIDE: paleta neon fria (dark + emerald/cyan/purple), raios, sombras e motion.
+*/
+
+:root {
+  /* Cores base */
+  --bg: #0f172a; /* slate-900 */
+  --bg-elev: #111827; /* gray-900 */
+  /* Increase base and muted contrast on dark backgrounds */
+  --text: #f3f4f6; /* gray-100 */
+  --muted: #cbd5e1; /* slate-300 */
+
+  /* Acentos */
+  --primary: #22c55e; /* emerald-500 */
+  --accent: #06b6d4;  /* cyan-500 */
+  --purple: #8b5cf6;  /* violet-500 */
+
+  /* Estados */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+  --info:    #38bdf8;
+
+  /* Tipografia */
+  --font-sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px; --fs-20: 20px; --fs-24: 24px; --fs-30: 30px; --fs-36: 36px; --fs-48: 48px;
+  --fw-regular: 400; --fw-semibold: 600;
+
+  /* Espaçamento */
+  --sp-4: 4px; --sp-8: 8px; --sp-12: 12px; --sp-16: 16px; --sp-20: 20px; --sp-24: 24px; --sp-32: 32px; --sp-48: 48px;
+
+  /* Raio */
+  --radius-sm: 8px; --radius: 10px; --radius-lg: 14px;
+
+  /* Layout */
+  --maxw: 1200px;
+
+  /* Bordas e vidro */
+  --border: rgba(148,163,184,0.22);
+  --glass: rgba(17,24,39,0.8);
+
+  /* Sombra e motion */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+  --shadow: 0 6px 20px rgba(0,0,0,0.35);
+  --easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms; --dur: 180ms; --dur-slow: 320ms;
+}
+
+/* Tema claro: override de tokens quando data-theme="light" no :root */
+:root[data-theme='light'] {
+  --bg: #f8fafc; /* slate-50 */
+  --bg-elev: #ffffff; /* branco */
+  --text: #0f172a; /* slate-900 */
+  --muted: #334155; /* slate-700 */
+
+  --border: rgba(2,6,23,0.12);
+  --glass: rgba(255,255,255,0.8);
+
+  /* sombras um pouco mais leves no claro */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.12);
+  --shadow: 0 6px 20px rgba(0,0,0,0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; --dur-slow: 0ms; }
+}

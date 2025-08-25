@@ -1,0 +1,87 @@
+/* components/sidebar.css - Sidebar overlay e navegação */
+
+.sidebar {
+  background: rgba(17,24,39,0.96);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  padding: 12px;
+  position: fixed;
+  top: 72px; /* abaixo do header */
+  left: 16px;
+  bottom: 16px;
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  transform: translateX(-120%);
+  transition: transform var(--dur, .25s) var(--easing, ease);
+  z-index: 20;
+}
+body.sidebar-open .sidebar { transform: translateX(0); }
+
+.sidebar h2 {
+  font-size: var(--fs-16);
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.nav-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.nav-list a {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02);
+  transition: background var(--dur, .2s) var(--easing, ease), border-color var(--dur, .2s) var(--easing, ease);
+}
+.nav-list a:hover { background: rgba(255,255,255,0.04); border-color: var(--accent); }
+.nav-list a.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(6,182,212,0.20) inset; }
+
+/* Acessibilidade: foco visível na navegação */
+.nav-list a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(6,182,212,0.18) inset;
+}
+
+/* Overlay backdrop */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur, .2s) var(--easing, ease);
+  z-index: 15;
+}
+body.sidebar-open .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+
+/* Tema claro: elevar contraste do menu e do backdrop */
+:root[data-theme='light'] .sidebar {
+  background: rgba(255,255,255,0.96);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18), 0 0 0 1px rgba(2,6,23,0.02) inset;
+}
+:root[data-theme='light'] .nav-list a {
+  background: rgba(2,6,23,0.02);
+}
+:root[data-theme='light'] .nav-list a:hover {
+  background: rgba(2,6,23,0.06);
+}
+:root[data-theme='light'] .sidebar-backdrop {
+  background: rgba(2,6,23,0.25);
+}
+
+/* Quick actions: grid layout for compact, tactile controls */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+.quick-actions .btn { width: 100%; justify-content: flex-start; }
+.quick-actions .material-symbols-outlined { font-size: 18px; }
+
+@media (max-width: 420px) {
+  .quick-actions { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Personal Leveling — Atividades</title>
+    <meta name="description" content="Registros de atividades" />
+    <meta name="theme-color" content="#111827" />
+    <link rel="icon" type="image/webp" href="assets/images/Favicon.webp" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/icons/icon-180.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="assets/styles/main.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1&display=swap" />
+  </head>
+  <body>
+    <a href="#content" class="skip-link">Pular para o conteúdo</a>
+
+    <div data-component="background"></div>
+    <div data-component="header"></div>
+    <div data-component="sidebar"></div>
+
+    <main id="content" class="container layout">
+      <section class="content">
+        <section class="card">
+          <div class="d-flex align-items-center justify-content-between">
+            <h2 class="mb-0">Tipos de Atividade (Presets)</h2>
+            <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#helpPresetModal" aria-label="Ajuda sobre presets">
+              Ajuda
+            </button>
+          </div>
+          <p class="muted">Cadastre atividades que você usará depois no lançamento diário (ex.: "Caminhada", "Estudo").</p>
+
+          <!-- Formulário para cadastrar preset de atividade -->
+          <form id="presetForm" class="mt-6 d-none" aria-label="Cadastrar novo preset de atividade">
+            <div class="grid grid-3 gap-2">
+              <div class="field">
+                <label for="presetTitle">Título</label>
+                <input id="presetTitle" name="presetTitle" class="form-control" type="text" placeholder="Ex.: Caminhada" required />
+              </div>
+              <div class="field">
+                <label for="presetCategory">Categoria</label>
+                <select id="presetCategory" name="presetCategory" class="form-select" aria-label="Categoria do preset">
+                  <option value="">Selecione...</option>
+                  <option value="estudo">Estudo</option>
+                  <option value="leitura">Leitura</option>
+                  <option value="treino">Treino</option>
+                  <option value="exercicio">Exercício</option>
+                  <option value="saude">Saúde</option>
+                  <option value="meditacao">Meditação</option>
+                  <option value="trabalho">Trabalho</option>
+                  <option value="projeto">Projeto</option>
+                  <option value="networking">Networking</option>
+                  <option value="social">Social</option>
+                  <option value="financas">Finanças</option>
+                  <option value="habito">Hábito</option>
+                </select>
+                <p id="presetCategoryInfo" class="muted small mt-1" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <!-- Editor de Métricas (metricsSpec) -->
+            <section class="mt-6">
+              <h3>Métricas do Preset</h3>
+              <p class="muted small">Defina campos dinâmicos e como eles compõem as unidades base (baseUnits).</p>
+              <div class="mt-2">
+                <h4 class="small">Campos</h4>
+                <div id="presetMetricsFields" class="stack"></div>
+                <button type="button" id="addMetricFieldBtn" class="btn btn-ghost mt-2">Adicionar campo</button>
+              </div>
+              <div class="mt-4">
+                <h4 class="small">baseUnits = Σ (campo × peso)</h4>
+                <div id="presetBaseUnitsTerms" class="stack"></div>
+                <button type="button" id="addBaseUnitsTermBtn" class="btn btn-ghost mt-2">Adicionar termo</button>
+              </div>
+              <div class="field mt-4">
+                <label for="presetMetricsHint">Dica (opcional)</label>
+                <input id="presetMetricsHint" class="form-control" type="text" placeholder="Ex.: Informe distância e ritmo para calcular minutos" />
+              </div>
+              <div class="field mt-4">
+                <label for="presetScoringJson">Distribuição de Atributos (opcional)</label>
+                <textarea id="presetScoringJson" class="form-control" rows="6" placeholder='{"typeField":"tipo","options":[{"value":"ficcao","label":"Ficção","rebalance":{"addTo":"criatividade","maxPercent":0.30}}]}'></textarea>
+                <p class="muted small mt-1">JSON com <code>typeField</code> (nome de um campo select) e <code>options[]</code>. Você pode usar <code>rebalance</code> para partir dos pesos da categoria e adicionar percentual ao atributo alvo, redistribuindo proporcionalmente dos demais. Se <code>addPercent</code> não for informado, o app usa <strong>0.10</strong> por padrão (o usuário poderá ajustar até <code>maxPercent</code>). Se nenhuma opção corresponder, os pesos base da categoria são usados.</p>
+              </div>
+            </section>
+
+            <!-- Campos ocultos que receberão o JSON serializado -->
+            <textarea id="presetMetricsSpec" name="presetMetricsSpec" hidden></textarea>
+            <fieldset class="mt-4">
+              <legend class="muted">Visibilidade</legend>
+              <div class="grid grid-2 gap-2">
+                <label class="inline">
+                  <input type="radio" name="presetVisibility" id="presetVisibilityGeneral" value="general" checked />
+                  <span>Geral (aparece para todos)</span>
+                </label>
+                <label class="inline">
+                  <input type="radio" name="presetVisibility" id="presetVisibilityPersonal" value="personal" />
+                  <span>Individual (só aparece para você na seleção; outros veem no seu perfil)</span>
+                </label>
+              </div>
+              <p class="muted small mt-2">Ex.: um médico pode criar "Cirurgia" como individual para registrar e mostrar no perfil, sem poluir as opções globais.</p>
+            </fieldset>
+            <div class="mt-4">
+              <button type="submit" class="btn btn-primary" id="addPresetBtn">
+                <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                <span>Adicionar Preset</span>
+              </button>
+            </div>
+          </form>
+          <!-- Âncora para devolver o formulário ao local original ao fechar o overpage -->
+          <div id="presetFormAnchor"></div>
+
+          <!-- Botão para abrir Overpage do formulário de preset -->
+          <div class="mt-4">
+            <button id="openPresetOverpage" type="button" class="btn btn-primary">
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              <span>Adicionar atividade</span>
+            </button>
+          </div>
+
+          <h3 class="mt-8">Seus Presets</h3>
+          <ul id="presetsList" class="mt-2"></ul>
+        </section>
+      </section>
+    </main>
+
+    <div data-component="footer"></div>
+
+    <script src="assets/scripts/components.js"></script>
+    <script src="assets/scripts/auth.js"></script>
+    <script>
+      // Exigir sessão
+      if (window.App && App.auth && typeof App.auth.requireAuth === 'function') {
+        App.auth.requireAuth();
+      }
+    </script>
+    <!-- Overpage: formulário de Preset -->
+    <style>
+      .overpage{position:fixed;inset:0;z-index:1050;display:none;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);overscroll-behavior:contain}
+      .overpage.open{display:block}
+      .overpage .panel{position:absolute;inset:auto 0 0 0;height:100%;max-height:100vh;display:flex;flex-direction:column;background:var(--surface, #0b1220);border-top-left-radius:12px;border-top-right-radius:12px;box-shadow:0 -8px 24px rgba(0,0,0,.3)}
+      @media (min-width: 768px){.overpage .panel{inset:5% 10% auto 10%;height:auto;max-height:90vh;border-radius:12px}}
+      .overpage .panel-header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:1rem;border-bottom:1px solid rgba(255,255,255,.08);background:inherit;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+      .overpage .panel-body{padding:1rem;overflow:auto;flex:1 1 auto}
+    </style>
+    <div id="presetOverpage" class="overpage" role="dialog" aria-modal="true" aria-labelledby="presetOverpageTitle" aria-hidden="true">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 id="presetOverpageTitle" class="mb-0">Adicionar Preset</h2>
+          <button id="closePresetOverpage" type="button" class="btn btn-outline-light btn-sm" aria-label="Fechar">
+            Fechar
+          </button>
+        </div>
+        <div class="panel-body">
+          <div id="overpageFormSlot"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function(){
+        const overpage = document.getElementById('presetOverpage');
+        const openBtn = document.getElementById('openPresetOverpage');
+        const closeBtn = document.getElementById('closePresetOverpage');
+        const slot = document.getElementById('overpageFormSlot');
+        const anchor = document.getElementById('presetFormAnchor');
+        const form = document.getElementById('presetForm');
+        if (!overpage || !openBtn || !closeBtn || !slot || !anchor || !form) return;
+
+        function openOverpage(){
+          // mover form para o slot do overpage e mostrar
+          slot.appendChild(form);
+          form.classList.remove('d-none');
+          overpage.classList.add('open');
+          overpage.setAttribute('aria-hidden','false');
+          document.body.style.overflow = 'hidden';
+          // focar primeiro campo
+          setTimeout(()=>{ try{ document.getElementById('presetTitle')?.focus(); }catch(e){} }, 50);
+        }
+        function closeOverpage(){
+          // devolver form para o local original e esconder inline
+          anchor.before(form);
+          form.classList.add('d-none');
+          overpage.classList.remove('open');
+          overpage.setAttribute('aria-hidden','true');
+          document.body.style.overflow = '';
+          openBtn?.focus();
+        }
+        openBtn.addEventListener('click', openOverpage);
+        closeBtn.addEventListener('click', closeOverpage);
+        overpage.addEventListener('click', (e)=>{ if(e.target === overpage) closeOverpage(); });
+        window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overpage.classList.contains('open')) closeOverpage(); });
+      })();
+    </script>
+    <!-- Help Modal: Preset -->
+    <div class="modal fade" id="helpPresetModal" tabindex="-1" aria-labelledby="helpPresetModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="helpPresetModalLabel">Como criar e usar Presets</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <ol class="mb-3">
+              <li><strong>Título, Categoria</strong>: defina o básico do seu tipo de atividade.</li>
+              <li><strong>Métricas do Preset</strong>:
+                <ul>
+                  <li>Em <em>Campos</em>, adicione variáveis (ex.: <code>reps</code>, <code>distancia</code>, <code>intensidade</code>).</li>
+                  <li>Em <em>baseUnits</em>, selecione os campos e pesos para compor as unidades base (campo × peso).</li>
+                  <li>Opcionalmente defina mínimos/máximos para cada termo.</li>
+                </ul>
+              </li>
+              <li><strong>Distribuição por Tipo</strong> (opcional): cole um JSON em <em>Distribuição de Atributos</em> com <code>typeField</code> (nome de um campo select criado em Campos) e <code>options[]</code> mapeando o valor escolhido para <code>weights</code> (frações por atributo) e <code>caps</code> (limite máximo por atributo). Ex.: <code>{"typeField":"tipo","options":[{"value":"financas","weights":{"financas":0.8,"conhecimento":0.2},"caps":{"financas":0.3}}]}</code>.</li>
+              <li><strong>Visibilidade</strong>: "Geral" aparece para todos; "Individual" só para você na seleção (outros veem no seu perfil).</li>
+              <li><strong>Uso</strong>: após salvar, o preset aparece na página do app em "Presets de Atividade". Ao clicar, os campos dinâmicos serão exibidos no formulário.</li>
+            </ol>
+            <p class="mb-0"><small>Dica: mantenha nomes de campos curtos e claros. Ex.: <code>reps</code>, <code>km</code>, <code>ritmo</code>.</small></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/scripts/main.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  </body>
+</html>

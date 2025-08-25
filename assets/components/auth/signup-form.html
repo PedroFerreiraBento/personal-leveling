@@ -1,0 +1,19 @@
+<form id="signupForm" class="form-grid mt-6" autocomplete="off" hidden>
+  <label class="mt-2">
+    <span class="muted">Nome</span>
+    <input id="signupUsername" type="text" placeholder="Seu nome" />
+  </label>
+  <label class="mt-2">
+    <span class="muted">Email</span>
+    <input id="signupEmail" type="email" required placeholder="voce@exemplo.com" />
+  </label>
+  <label class="mt-2">
+    <span class="muted">Senha</span>
+    <input id="signupPassword" type="password" minlength="6" required placeholder="Mínimo 6 caracteres" />
+  </label>
+  <div class="actions mt-4">
+    <button type="submit" class="btn btn-primary">Criar conta</button>
+  </div>
+  <p class="muted small">Conta local armazenada no seu navegador. Não use senhas sensíveis.</p>
+  <p id="signupError" class="error" role="alert"></p>
+</form>

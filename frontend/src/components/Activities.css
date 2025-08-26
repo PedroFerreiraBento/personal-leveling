@@ -1,0 +1,60 @@
+/* Minimal styles for Activities page */
+
+.activities {
+  padding: 24px;
+}
+
+.activities-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.back-link {
+  color: #9aa6c2;
+  text-decoration: none;
+}
+.back-link:hover { text-decoration: underline; }
+
+.activities-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+}
+
+.add-activity, .activities-list {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.activity-form { display: flex; flex-direction: column; gap: 12px; }
+
+.activities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.activity-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.activity-card .category { color: #9aa6c2; font-size: 0.9rem; }
+.activity-card .duration { font-weight: 600; }
+.activity-card .date { color: #9aa6c2; font-size: 0.85rem; }
+
+.delete-btn {
+  background: #e24d4d;
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.delete-btn:hover { filter: brightness(1.05); }

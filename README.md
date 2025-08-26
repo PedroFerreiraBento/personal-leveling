@@ -81,6 +81,13 @@ Acesse:
 
 ## 🌐 Deploy
 
+### Droplet (Docker Compose + GitHub Actions)
+
+- Workflow: `/.github/workflows/deploy.yml`
+- Serviços: apenas `postgres` e `web` neste estágio
+- Guia completo e pré-requisitos (swap, docker/sudo, .env):
+  - [`docs/features/deploy-droplet.md`](docs/features/deploy-droplet.md)
+
 ### Render (Free tier)
 
 1. **PostgreSQL Database**: Criar via Render Dashboard
@@ -110,6 +117,7 @@ Ver guia completo em: [`docs/features/deploy-render.md`](docs/features/deploy-re
 - [`docs/IDEIA_GERAL.md`](docs/IDEIA_GERAL.md) - Visão geral do produto
 - [`docs/DIRETRIZ_DE_CODIGO.md`](docs/DIRETRIZ_DE_CODIGO.md) - Padrões de código
 - [`docs/features/deploy-render.md`](docs/features/deploy-render.md) - Guia de deploy
+- [`docs/features/deploy-droplet.md`](docs/features/deploy-droplet.md) - Deploy em Droplet (Compose + Actions)
 
 ## 🤝 Contribuição
 

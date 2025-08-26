@@ -1,7 +1,8 @@
 FROM node:18-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN sh -c 'if [ -f package-lock.json ]; then npm ci; else npm install; fi'
+ENV NODE_OPTIONS=--max-old-space-size=256
+RUN sh -c 'if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi'
 COPY . .
 # Build-time arg for Vite
 ARG VITE_API_URL

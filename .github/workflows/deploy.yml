@@ -36,19 +36,28 @@ jobs:
             exit 1
           fi
 
+      - name: Prepare known_hosts
+        id: kh
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+        run: |
+          set -e
+          KH=$(ssh-keyscan -H "$HOST" 2>/dev/null)
+          if [ -z "$KH" ]; then
+            echo "::error::ssh-keyscan returned empty for $HOST. Ensure the host is reachable and DNS resolves."
+            exit 1
+          fi
+          echo "known_hosts<<EOF" >> $GITHUB_OUTPUT
+          echo "$KH" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Install SSH key (supports passphrase)
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # We'll populate known_hosts in the next step via ssh-keyscan
-          known_hosts: ""
+          known_hosts: ${{ steps.kh.outputs.known_hosts }}
           if_key_exists: replace
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-
-      - name: Add host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy over SSH
         env:

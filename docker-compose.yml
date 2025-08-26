@@ -39,6 +39,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${PUBLIC_API_URL}
     container_name: personal-web
     restart: unless-stopped
     depends_on:

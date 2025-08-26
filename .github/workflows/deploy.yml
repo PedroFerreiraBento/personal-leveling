@@ -3,6 +3,7 @@ name: Deploy to Droplet
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -12,10 +13,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Validate required secrets
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+          DROPLET_APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
+          SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+        run: |
+          missing=0
+          for var in SSH_PRIVATE_KEY DROPLET_HOST DROPLET_USER DROPLET_APP_DIR; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Missing required secret: $var"
+              missing=1
+            fi
+          done
+          if [ -z "${SSH_PASSPHRASE}" ]; then
+            echo "::notice::SSH_PASSPHRASE not provided. If your key has a passphrase, add secret SSH_PASSPHRASE."
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "One or more required secrets are missing. Configure them in GitHub → Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Install SSH key (supports passphrase)
+        uses: shimataro/ssh-key-action@v2
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # We'll populate known_hosts in the next step via ssh-keyscan
+          known_hosts: ""
+          if_key_exists: replace
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
 
       - name: Add host to known_hosts
         run: |

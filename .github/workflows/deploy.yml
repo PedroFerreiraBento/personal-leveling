@@ -71,12 +71,11 @@ jobs:
             # Build & start only required services
             $COMPOSE pull postgres web || true
             if ! $COMPOSE build --no-cache web; then
-              echo "[ERROR] Build failed (service: web). Showing last logs..."
-              $DOCKER compose $COMPOSE_FILES logs --tail=200 web || true
+              echo "[ERROR] Build failed (service: web). Check the build output above."
               exit 1
             fi
             if ! $COMPOSE up -d postgres web; then
-              echo "[ERROR] Up failed. Showing logs for web and postgres..."
+              echo "[ERROR] Up failed. Recent service logs:";
               $DOCKER compose $COMPOSE_FILES logs --tail=200 web || true
               $DOCKER compose $COMPOSE_FILES logs --tail=200 postgres || true
               exit 1

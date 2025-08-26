@@ -43,8 +43,6 @@ services:
         VITE_API_URL: ${PUBLIC_API_URL}
     container_name: personal-web
     restart: unless-stopped
-    depends_on:
-      - api
     environment:
       VITE_API_URL: ${PUBLIC_API_URL}
     ports:

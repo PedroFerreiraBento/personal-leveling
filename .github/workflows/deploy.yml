@@ -36,44 +36,25 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare known_hosts
-        id: kh
-        env:
-          HOST: ${{ secrets.DROPLET_HOST }}
-        run: |
-          set -e
-          KH=$(ssh-keyscan -H "$HOST" 2>/dev/null)
-          if [ -z "$KH" ]; then
-            echo "::error::ssh-keyscan returned empty for $HOST. Ensure the host is reachable and DNS resolves."
-            exit 1
-          fi
-          echo "known_hosts<<EOF" >> $GITHUB_OUTPUT
-          echo "$KH" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Install SSH key (supports passphrase)
-        uses: shimataro/ssh-key-action@v2
+      - name: Deploy over SSH (supports passphrase)
+        uses: appleboy/ssh-action@v0.1.10
         with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: ${{ steps.kh.outputs.known_hosts }}
-          if_key_exists: replace
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-
-      - name: Deploy over SSH
-        env:
-          HOST: ${{ secrets.DROPLET_HOST }}
-          USER: ${{ secrets.DROPLET_USER }}
-          APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
-        run: |
-          ssh $USER@$HOST << 'EOF'
+          script: |
             set -e
-            cd $APP_DIR || (git clone ${{ github.server_url }}/${{ github.repository }}.git $APP_DIR && cd $APP_DIR)
+            APP_DIR=${{ secrets.DROPLET_APP_DIR }}
+            REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
+            if [ ! -d "$APP_DIR/.git" ]; then
+              mkdir -p "$APP_DIR"
+              git clone "$REPO_URL" "$APP_DIR"
+            fi
+            cd "$APP_DIR"
             git fetch --all
             git reset --hard origin/main
-            # Create/refresh .env from existing secrets (ensure already present in server)
-            # Optionally: echo VAR=... >> .env
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
             docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
             docker compose exec api npm run migrate
-          EOF

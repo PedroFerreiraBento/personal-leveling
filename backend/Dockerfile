@@ -1,7 +1,7 @@
 FROM node:18-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN sh -c 'if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi'
 
 FROM node:18-alpine
 WORKDIR /app

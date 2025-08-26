@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: personal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE}
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: personal-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      FRONTEND_URL: ${FRONTEND_URL}
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${PGDATABASE}
+      PGUSER: ${PGUSER}
+      PGPASSWORD: ${PGPASSWORD}
+      PGSSL: "false"
+    networks:
+      - app
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: personal-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: ${PUBLIC_API_URL}
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge

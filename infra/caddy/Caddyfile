@@ -1,0 +1,29 @@
+{$SITE_DOMAIN} {
+  encode zstd gzip
+
+  # Frontend estático servido pelo Nginx interno
+  route {
+    @api path /api/*
+    handle @api {
+      reverse_proxy api:3001
+    }
+
+    # Demais rotas vão para o Nginx que serve a SPA
+    handle {
+      reverse_proxy web:80
+    }
+  }
+
+  # Opções recomendadas de TLS/HTTP3
+  tls {
+    # Contato para Let's Encrypt
+    email pedro.techfinance@gmail.com
+  }
+
+  # HTTP/3 QUIC
+  servers {
+    protocol {
+      experimental_http3
+    }
+  }
+}

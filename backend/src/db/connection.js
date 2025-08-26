@@ -1,12 +1,16 @@
 const { Pool } = require('pg');
 
+// Allow configuration via environment variables for production/deploys
+// Defaults are suitable for local development
+const useSSL = (process.env.PGSSL || 'false').toLowerCase() === 'true';
+
 const pool = new Pool({
-  host: 'localhost',
-  port: 5432,
-  database: 'personal_leveling',
-  user: 'postgres',
-  password: 'password',
-  ssl: false,
+  host: process.env.PGHOST || 'localhost',
+  port: Number(process.env.PGPORT || 5432),
+  database: process.env.PGDATABASE || 'personal_leveling',
+  user: process.env.PGUSER || 'postgres',
+  password: process.env.PGPASSWORD || 'password',
+  ssl: useSSL ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

@@ -1,0 +1,31 @@
+services:
+  web:
+    # em produção, não expor porta 80 diretamente (Caddy ficará na borda)
+    ports: []
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: personal-caddy
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  app:
+    external: false

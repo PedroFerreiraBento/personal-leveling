@@ -65,27 +65,21 @@ jobs:
             git reset --hard origin/main
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
-            COMPOSE="$DOCKER compose -f docker-compose.yml -f docker-compose.prod.yml"
-            # Build & start
-            $COMPOSE pull || true
-            if ! $COMPOSE build --no-cache --progress=plain; then
-              echo "[ERROR] Build failed. Showing last 200 lines of logs for each service (if any)."
-              $COMPOSE logs --tail=200 || true
+            # Only web and postgres, using base compose (no caddy/prod)
+            COMPOSE_FILES="-f docker-compose.yml"
+            COMPOSE="$DOCKER compose $COMPOSE_FILES"
+            # Build & start only required services
+            $COMPOSE pull postgres web || true
+            if ! $COMPOSE build --no-cache web; then
+              echo "[ERROR] Build failed (service: web). Showing last logs..."
+              $DOCKER compose $COMPOSE_FILES logs --tail=200 web || true
               exit 1
             fi
-            if ! $COMPOSE up -d; then
-              echo "[ERROR] Up failed. Showing logs..."
-              $COMPOSE logs --tail=200 || true
+            if ! $COMPOSE up -d postgres web; then
+              echo "[ERROR] Up failed. Showing logs for web and postgres..."
+              $DOCKER compose $COMPOSE_FILES logs --tail=200 web || true
+              $DOCKER compose $COMPOSE_FILES logs --tail=200 postgres || true
               exit 1
             fi
             $COMPOSE ps
-            # Short wait for services to settle
-            sleep 5
-            # Run migrations with diagnostics on failure
-            if ! $COMPOSE exec -T api npm run migrate; then
-              echo "Migration failed. Showing recent logs..."
-              $COMPOSE logs --tail=200 api || true
-              $COMPOSE logs --tail=200 web || true
-              $COMPOSE logs --tail=200 proxy || true
-              exit 1
-            fi
+            echo "[INFO] Deploy finished for services: postgres, web"

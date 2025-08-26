@@ -54,10 +54,16 @@ jobs:
             cd "$APP_DIR"
             echo "[INFO] Docker versions on remote:"
             (docker --version && docker compose version) || true
-            # Use sudo for docker if necessary
+            # Use sudo for docker if necessary (non-interactive)
             if ! docker info >/dev/null 2>&1; then
-              echo "[INFO] Using sudo for docker"
-              DOCKER="sudo docker"
+              echo "[INFO] docker requires sudo. Verifying passwordless sudo..."
+              if sudo -n true 2>/dev/null; then
+                echo "[INFO] Using sudo -n for docker"
+                DOCKER="sudo -n docker"
+              else
+                echo "[ERROR] Passwordless sudo is not configured for this user. Configure NOPASSWD for docker or add user to docker group, then retry."
+                exit 1
+              fi
             else
               DOCKER="docker"
             fi
@@ -69,11 +75,14 @@ jobs:
             COMPOSE_FILES="-f docker-compose.yml"
             COMPOSE="$DOCKER compose $COMPOSE_FILES"
             # Build & start only required services
+            echo "[INFO] Pulling images (postgres, web) if present..."
             $COMPOSE pull postgres web || true
+            echo "[INFO] Building web image..."
             if ! $COMPOSE build --no-cache web; then
               echo "[ERROR] Build failed (service: web). Check the build output above."
               exit 1
             fi
+            echo "[INFO] Starting services (postgres, web)..."
             if ! $COMPOSE up -d postgres web; then
               echo "[ERROR] Up failed. Recent service logs:";
               $DOCKER compose $COMPOSE_FILES logs --tail=200 web || true

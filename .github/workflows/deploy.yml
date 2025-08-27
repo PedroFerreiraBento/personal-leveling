@@ -69,62 +69,58 @@ jobs:
           key_path: ${{ env.SSH_KEY_PATH }}
           script_stop: true
           envs: APP_DIR
-        script: |
-          set -eu
-          REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
-          TARGET_DIR="${APP_DIR:-$HOME/personal-leveling}"
+          script: |
+            set -eu
+            REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
+            TARGET_DIR="${APP_DIR:-$HOME/personal-leveling}"
 
-          mkdir -p "$TARGET_DIR"
-          if [ ! -d "$TARGET_DIR/.git" ]; then
-            git clone "$REPO_URL" "$TARGET_DIR"
-          fi
-          cd "$TARGET_DIR"
-          git fetch --all --prune
-          git reset --hard origin/main
-
-          echo "[INFO] Docker versions on remote:"
-          (docker --version && docker compose version) 2>&1 || true
-
-          # -------- bloco robusto de detecção --------
-          USER_NAME="$(id -un)"
-          use_sg=0
-          if docker info >/dev/null 2>&1; then
-            echo "[INFO] docker funciona direto."
-            DOCKER="docker"
-          else
-            if command -v sg >/dev/null 2>&1 && sg docker -c 'docker info' >/dev/null 2>&1; then
-              echo "[INFO] Usando 'sg docker -c' (sessão não herdou grupo)."
-              use_sg=1
-            elif sudo -n docker info >/dev/null 2>&1; then
-              echo "[INFO] Usando 'sudo -n docker'."
-              DOCKER="sudo -n docker"
-            else
-              echo "[ERROR] Sem permissão para usar docker."
-              echo "Diag:"
-              echo "  whoami: $(whoami)"
-              echo "  groups: $(id -nG || true)"
-              echo "  docker.sock: $(ls -l /var/run/docker.sock || true)"
-              echo "  getent group docker: $(getent group docker || true)"
-              echo "Correções:"
-              echo "  sudo usermod -aG docker ${USER_NAME} && sudo loginctl terminate-user ${USER_NAME}"
-              echo "  # ou NOPASSWD p/ docker: echo \"${USER_NAME} ALL=(ALL) NOPASSWD: /usr/bin/docker\" | sudo tee /etc/sudoers.d/90-${USER_NAME}-docker && sudo visudo -cf /etc/sudoers.d/90-${USER_NAME}-docker"
-              exit 1
+            mkdir -p "$TARGET_DIR"
+            if [ ! -d "$TARGET_DIR/.git" ]; then
+              git clone "$REPO_URL" "$TARGET_DIR"
             fi
-          fi
+            cd "$TARGET_DIR"
+            git fetch --all --prune
+            git reset --hard origin/main
 
-          run_docker() {
-            if [ "$use_sg" -eq 1 ]; then
-              sg docker -c "docker $*"
+            echo "[INFO] Docker versions on remote:"
+            (docker --version && docker compose version) 2>&1 || true
+
+            # --- Docker invoker: direct -> sg docker -> sudo -n docker -> fail (POSIX) ---
+            USER_NAME="$(id -un)"
+            use_sg=0
+            if docker info >/dev/null 2>&1; then
+              echo "[INFO] docker funciona direto."
+              DOCKER="docker"
             else
-              $DOCKER "$@"
+              if command -v sg >/dev/null 2>&1 && sg docker -c 'docker info' >/dev/null 2>&1; then
+                echo "[INFO] Usando 'sg docker -c' (sessão não herdou grupo)."
+                use_sg=1
+              elif sudo -n docker info >/dev/null 2>&1; then
+                echo "[INFO] Usando 'sudo -n docker'."
+                DOCKER="sudo -n docker"
+              else
+                echo "[ERROR] Sem permissão para usar docker."
+                echo "Diag:"
+                echo "  whoami: $(whoami)"
+                echo "  groups: $(id -nG || true)"
+                echo "  docker.sock: $(ls -l /var/run/docker.sock || true)"
+                echo "  getent group docker: $(getent group docker || true)"
+                exit 1
+              fi
             fi
-          }
-          # -------------------------------------------
 
-          export DOCKER_BUILDKIT=1
-          export COMPOSE_DOCKER_CLI_BUILD=1
-          run_docker compose -f docker-compose.yml pull postgres web || true
-          run_docker compose -f docker-compose.yml build --no-cache web
-          run_docker compose -f docker-compose.yml up -d postgres web
-          run_docker compose -f docker-compose.yml ps
-          echo "[INFO] Deploy finished."
+            run_docker() {
+              if [ "$use_sg" -eq 1 ]; then
+                sg docker -c "docker $*"
+              else
+                $DOCKER "$@"
+              fi
+            }
+
+            export DOCKER_BUILDKIT=1
+            export COMPOSE_DOCKER_CLI_BUILD=1
+            run_docker compose -f docker-compose.yml pull postgres web || true
+            run_docker compose -f docker-compose.yml build --no-cache web
+            run_docker compose -f docker-compose.yml up -d postgres web
+            run_docker compose -f docker-compose.yml ps
+            echo "[INFO] Deploy finished."

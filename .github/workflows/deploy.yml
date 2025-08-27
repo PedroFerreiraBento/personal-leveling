@@ -55,13 +55,25 @@ jobs:
 
           [[ "$missing" -eq 0 ]]
 
-      - name: Write private key to file (required by many SSH clients)
+      - name: Write private key to file (and validate)
         shell: bash
         run: |
           set -euo pipefail
-          umask 077
-          # usa o secret diretamente para criar o arquivo; nunca ecoe o conteúdo
-          printf "%s" '${{ secrets.SSH_PRIVATE_KEY }}' > ~/.ssh/id_key
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          # grava a chave exatamente como está no Secret (preserva quebras de linha)
+          cat > "$HOME/.ssh/id_key" <<'EOF'
+${{ secrets.SSH_PRIVATE_KEY }}
+EOF
+
+          # normaliza CRLF se o secret foi colado com linhas do Windows
+          sed -i 's/\r$//' "$HOME/.ssh/id_key"
+          chmod 600 "$HOME/.ssh/id_key"
+
+          # opcional: valida se a chave é legível pelo ssh
+          ssh-keygen -y -f "$HOME/.ssh/id_key" >/dev/null
+
           echo "SSH_KEY_PATH=$HOME/.ssh/id_key" >> "$GITHUB_ENV"
 
       - name: Deploy over SSH (supports passphrase)

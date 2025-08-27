@@ -91,6 +91,7 @@ jobs:
             if docker info >/dev/null 2>&1; then
               DOCKER="docker"
             else
+              sg docker -c "id -nG"
               echo "[ERROR] Usuário não consegue usar docker. Verifique se está no grupo docker e relogou."
               exit 1
             fi

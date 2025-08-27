@@ -44,13 +44,12 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            set -Eeuo pipefail
-            trap 'echo "[ERROR] Unexpected failure at line $LINENO" >&2' ERR
+            set -eu
             APP_DIR=${{ secrets.DROPLET_APP_DIR }}
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
             # Sanity check
             if [ -z "$APP_DIR" ]; then
-              echo "[ERROR] DROPLET_APP_DIR is empty" >&2
+              echo "[ERROR] DROPLET_APP_DIR is empty"
               exit 1
             fi
             if [ ! -d "$APP_DIR/.git" ]; then
@@ -59,7 +58,7 @@ jobs:
             fi
             cd "$APP_DIR"
             echo "[INFO] Docker versions on remote:"
-            (docker --version && docker compose version) || true
+            (docker --version && docker compose version) 2>&1 || true
             # Use sudo for docker if necessary (non-interactive)
             if ! docker info >/dev/null 2>&1; then
               echo "[INFO] docker requires sudo. Verifying passwordless sudo..."
@@ -67,14 +66,14 @@ jobs:
                 echo "[INFO] Using sudo -n for docker"
                 DOCKER="sudo -n docker"
               else
-                echo "[ERROR] Passwordless sudo is not configured for this user. Configure NOPASSWD for docker or add user to docker group, then retry." >&2
+                echo "[ERROR] Passwordless sudo is not configured for this user. Configure NOPASSWD for docker or add user to docker group, then retry."
                 exit 1
               fi
             else
               DOCKER="docker"
             fi
-            git fetch --all --prune
-            git reset --hard origin/main
+            git fetch --all --prune 2>&1
+            git reset --hard origin/main 2>&1
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
             # Only web and postgres, using base compose (no caddy/prod)
@@ -82,18 +81,18 @@ jobs:
             COMPOSE="$DOCKER compose $COMPOSE_FILES"
             # Build & start only required services
             echo "[INFO] Pulling images (postgres, web) if present..."
-            $COMPOSE pull postgres web || true
+            $COMPOSE pull postgres web 2>&1 || true
             echo "[INFO] Building web image..."
             if ! $COMPOSE build --no-cache web; then
-              echo "[ERROR] Build failed (service: web). Check the build output above." >&2
+              echo "[ERROR] Build failed (service: web). Check the build output above."
               exit 1
             fi
             echo "[INFO] Starting services (postgres, web)..."
             if ! $COMPOSE up -d postgres web; then
-              echo "[ERROR] Up failed. Recent service logs:" >&2
+              echo "[ERROR] Up failed. Recent service logs:"
               $COMPOSE logs --tail=200 web || true
               $COMPOSE logs --tail=200 postgres || true
               exit 1
             fi
-            $COMPOSE ps
+            $COMPOSE ps 2>&1
             echo "[INFO] Deploy finished for services: postgres, web"

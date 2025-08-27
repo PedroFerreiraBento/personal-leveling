@@ -71,13 +71,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           debug: true
-          envs: DROPLET_APP_DIR,PGDATABASE,PGUSER,PGPASSWORD,PUBLIC_API_URL,FRONTEND_URL
-        env:
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGUSER: ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
-          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          envs: DROPLET_APP_DIR
         script: |
           set -euxo pipefail
 
@@ -85,12 +79,6 @@ jobs:
           TARGET_DIR="${DROPLET_APP_DIR:-$HOME/personal-leveling}"
 
           echo "[INFO] TARGET_DIR=$TARGET_DIR"
-          echo "[INFO] Env presence:"
-          test -n "${PGDATABASE:-}" && echo "  - PGDATABASE: set" || echo "  - PGDATABASE: (unset)"
-          test -n "${PGUSER:-}"     && echo "  - PGUSER: set"     || echo "  - PGUSER: (unset)"
-          test -n "${PGPASSWORD:-}" && echo "  - PGPASSWORD: set" || echo "  - PGPASSWORD: (unset)"
-          test -n "${PUBLIC_API_URL:-}" && echo "  - PUBLIC_API_URL: set" || echo "  - PUBLIC_API_URL: (unset)"
-          test -n "${FRONTEND_URL:-}"   && echo "  - FRONTEND_URL: set"   || echo "  - FRONTEND_URL: (unset)"
           mkdir -p "$TARGET_DIR"
 
             if [ ! -d "$TARGET_DIR/.git" ]; then
@@ -136,6 +124,18 @@ jobs:
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
 
+            # Compose env-file handling
+            if [ -f .env ]; then
+              echo "[INFO] .env found at $TARGET_DIR/.env"
+              echo "[INFO] .env keys:"
+              # print only variable names, not values
+              sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/  - \1/p' .env | sort | uniq | sed 's/^/    /'
+              COMPOSE_ENV_FILE=(--env-file .env)
+            else
+              echo "[WARN] .env not found at $TARGET_DIR/.env. Compose will rely on current environment."
+              COMPOSE_ENV_FILE=()
+            fi
+
             if [ ! -f docker-compose.yml ]; then
               echo "[ERROR] docker-compose.yml não encontrado em $TARGET_DIR"
               exit 1
@@ -144,13 +144,13 @@ jobs:
             echo "[INFO] Validando compose…"
             echo "[INFO] docker compose config (with interpolation)"
             set +e
-            run_compose -f docker-compose.yml config
+            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml config
             CONFIG_RC=$?
             set -e
             if [ "$CONFIG_RC" -ne 0 ]; then
               echo "[WARN] docker compose config falhou. Tentando sem interpolação para isolar erro de variáveis…"
               set +e
-              run_compose -f docker-compose.yml config --no-interpolate
+              run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml config --no-interpolate
               NOINT_RC=$?
               set -e
               if [ "$NOINT_RC" -ne 0 ]; then
@@ -161,27 +161,27 @@ jobs:
 
             echo "[INFO] Pulando pull silencioso (se falhar veremos o erro):"
             # Se você usa imagens privadas, esse comando vai denunciar falta de login
-            run_compose -f docker-compose.yml pull postgres web || true
+            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml pull postgres web || true
 
             echo "[INFO] Buildando (com logs verbosos)…"
             # Remova --no-cache se não quiser rebuild completo
-            run_compose -f docker-compose.yml build web || { 
+            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml build web || { 
               echo "[ERROR] Build do serviço 'web' falhou. Logs recentes do build (se houver):"; 
               exit 1; 
             }
 
             echo "[INFO] Subindo containers…"
-            run_compose -f docker-compose.yml up -d postgres web || {
+            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml up -d postgres web || {
               echo "[ERROR] Falha ao subir containers. Mostrando logs recentes:";
-              run_compose -f docker-compose.yml ps || true
-              run_compose -f docker-compose.yml logs --no-color --tail=200 postgres || true
-              run_compose -f docker-compose.yml logs --no-color --tail=200 web || true
+              run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml ps || true
+              run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml logs --no-color --tail=200 postgres || true
+              run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml logs --no-color --tail=200 web || true
               exit 1
             }
 
             echo "[INFO] Estado final:"
-            run_compose -f docker-compose.yml ps
+            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml ps
             echo "[INFO] Últimas 100 linhas dos logs do 'web':"
-            run_compose -f docker-compose.yml logs --no-color --tail=100 web || true
+            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml logs --no-color --tail=100 web || true
 
             echo "[INFO] Deploy finished."

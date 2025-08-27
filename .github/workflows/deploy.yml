@@ -74,7 +74,10 @@ jobs:
           debug: true
           envs: DROPLET_APP_DIR
           script: |
-            set -euxo pipefail
+            # POSIX shell (sh) friendly
+            set -eu
+            # habilita trace sem 'pipefail' (incompatível com sh)
+            set -x
 
             REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
             TARGET_DIR="${DROPLET_APP_DIR:-$HOME/personal-leveling}"
@@ -94,12 +97,11 @@ jobs:
 
             echo "[INFO] Docker versions on remote:"
             (docker --version && docker compose version) 2>&1 || true
-
             echo "[INFO] whoami: $(whoami)"
             echo "[INFO] groups: $(id -nG || true)"
             ls -l /var/run/docker.sock || true
 
-            echo "[INFO] Selecting docker invoker..."
+            echo "[INFO] Selecting docker mode..."
             DOCKER_MODE=""
             if docker info >/dev/null 2>&1; then
               DOCKER_MODE="direct"; echo "[INFO] Using direct docker"
@@ -108,107 +110,70 @@ jobs:
             elif sudo -n docker info >/dev/null 2>&1; then
               DOCKER_MODE="sudo"; echo "[INFO] Using sudo -n docker"
             else
-              echo "[ERROR] Cannot run docker. Add user to 'docker' group and re-login, or configure sudo NOPASSWD for docker."
+              echo "[ERROR] Cannot run docker. Add user to 'docker' group or configure sudo NOPASSWD."
               exit 1
             fi
 
-            run_compose() {
-              if [ "$DOCKER_MODE" = "sg" ]; then
-                sg docker -c "docker compose $*"
-              elif [ "$DOCKER_MODE" = "sudo" ]; then
-                sudo -n docker compose "$@"
-              else
-                docker compose "$@"
-              fi
-            }
+            [ -f docker-compose.yml ] || { echo "[ERROR] docker-compose.yml não encontrado em $TARGET_DIR"; exit 1; }
 
-            export DOCKER_BUILDKIT=1
-            export COMPOSE_DOCKER_CLI_BUILD=1
-
-            # Compose env-file handling
+            # Usa .env se existir (sem arrays, sem vazar conteúdo)
+            COMPOSE_ENV_ARG=""
             if [ -f .env ]; then
-              echo "[INFO] .env found at $TARGET_DIR/.env"
+              echo "[INFO] .env encontrado (variáveis ocultadas no log)"
+              # normaliza CRLF se necessário
+              sed -i 's/\r$//' .env || true
+              COMPOSE_ENV_ARG="--env-file .env"
               echo "[INFO] .env keys:"
-              # print only variable names, not values
               sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/  - \1/p' .env | sort | uniq | sed 's/^/    /'
-              COMPOSE_ENV_FILE=(--env-file .env)
             else
-              echo "[WARN] .env not found at $TARGET_DIR/.env. Compose will rely on current environment."
-              COMPOSE_ENV_FILE=()
+              echo "[WARN] .env ausente. O compose dependerá apenas do ambiente atual."
             fi
 
-            if [ ! -f docker-compose.yml ]; then
-              echo "[ERROR] docker-compose.yml não encontrado em $TARGET_DIR"
-              exit 1
+            echo "[INFO] Validando docker compose (sem interpolar, para pegar sintaxe primeiro)…"
+            if [ "$DOCKER_MODE" = "sg" ]; then
+              sg docker -c "docker compose -f docker-compose.yml config --no-interpolate" >/dev/null
+            elif [ "$DOCKER_MODE" = "sudo" ]; then
+              sudo -n docker compose -f docker-compose.yml config --no-interpolate >/dev/null
+            else
+              docker compose -f docker-compose.yml config --no-interpolate >/dev/null
             fi
 
-            # Validate required environment variables before using compose
-            echo "[INFO] Validando variáveis de ambiente necessárias…"
-            # Source .env to populate the environment for checks, but never print values
-            if [ -f .env ]; then
-              set +x
-              set -a
-              . ./.env
-              set +a
-              set -x
-            fi
-            # Turn off xtrace to avoid echoing sensitive values during checks
-            set +x
-            missing_env=0
-            for v in FRONTEND_URL PGDATABASE PGPASSWORD PGUSER PUBLIC_API_URL SITE_DOMAIN; do
-              val="${!v-}"
-              if [ -z "$val" ]; then
-                echo "[ERROR] Variável obrigatória ausente ou vazia: $v (defina em .env ou no ambiente)"
-                missing_env=1
+            echo "[INFO] Validando docker compose (com interpolação se .env existir)…"
+            if [ -n "$COMPOSE_ENV_ARG" ]; then
+              if [ "$DOCKER_MODE" = "sg" ]; then
+                sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml config" >/dev/null
+              elif [ "$DOCKER_MODE" = "sudo" ]; then
+                sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml config >/dev/null
               else
-                echo "[OK] $v presente"
+                docker compose $COMPOSE_ENV_ARG -f docker-compose.yml config >/dev/null
               fi
-            done
-            # Re-enable xtrace for subsequent steps
-            set -x
-            if [ "$missing_env" -ne 0 ]; then
-              echo "[ERROR] Falta variável(ais) obrigatória(s). Abortando antes do docker compose."
-              exit 1
-            fi
-
-            echo "[INFO] Validando compose…"
-            echo "[INFO] docker compose config (with interpolation)"
-            # Avoid appleboy script_stop from aborting on non-zero here; capture rc safely
-            CONFIG_RC=0
-            { run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml config; CONFIG_RC=$?; } || true
-            if [ "$CONFIG_RC" -ne 0 ]; then
-              echo "[WARN] docker compose config falhou. Tentando sem interpolação para isolar erro de variáveis…"
-              NOINT_RC=0
-              { run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml config --no-interpolate; NOINT_RC=$?; } || true
-              if [ "$NOINT_RC" -ne 0 ]; then
-                echo "[ERROR] docker compose config --no-interpolate também falhou. Saída acima."
-                exit 1
+            else
+              # sem .env, ainda assim tenta interpolar do ambiente
+              if [ "$DOCKER_MODE" = "sg" ]; then
+                sg docker -c "docker compose -f docker-compose.yml config" >/dev/null || true
+              elif [ "$DOCKER_MODE" = "sudo" ]; then
+                sudo -n docker compose -f docker-compose.yml config >/dev/null || true
+              else
+                docker compose -f docker-compose.yml config >/dev/null || true
               fi
             fi
 
-            echo "[INFO] Pulando pull silencioso (se falhar veremos o erro):"
-            # Se você usa imagens privadas, esse comando vai denunciar falta de login
-            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml pull postgres web || true
-
-            echo "[INFO] Buildando (com logs verbosos)…"
-            # Remova --no-cache se não quiser rebuild completo
-            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml build web || { 
-              echo "[ERROR] Build do serviço 'web' falhou. Logs recentes do build (se houver):"; 
-              exit 1; 
-            }
-
-            echo "[INFO] Subindo containers…"
-            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml up -d postgres web || {
-              echo "[ERROR] Falha ao subir containers. Mostrando logs recentes:";
-              run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml ps || true
-              run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml logs --no-color --tail=200 postgres || true
-              run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml logs --no-color --tail=200 web || true
-              exit 1
-            }
-
-            echo "[INFO] Estado final:"
-            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml ps
-            echo "[INFO] Últimas 100 linhas dos logs do 'web':"
-            run_compose "${COMPOSE_ENV_FILE[@]}" -f docker-compose.yml logs --no-color --tail=100 web || true
+            echo "[INFO] Pull/build/up…"
+            if [ "$DOCKER_MODE" = "sg" ]; then
+              sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web" || true
+              sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml build web"
+              sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web"
+              sg docker -c "docker compose -f docker-compose.yml ps"
+            elif [ "$DOCKER_MODE" = "sudo" ]; then
+              sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web || true
+              sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml build web
+              sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web
+              sudo -n docker compose -f docker-compose.yml ps
+            else
+              docker compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web || true
+              docker compose $COMPOSE_ENV_ARG -f docker-compose.yml build web
+              docker compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web
+              docker compose -f docker-compose.yml ps
+            fi
 
             echo "[INFO] Deploy finished."

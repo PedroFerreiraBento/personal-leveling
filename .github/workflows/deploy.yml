@@ -167,9 +167,9 @@ jobs:
             fi
 
             echo "[INFO] Pull/build/up…"
-            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web || true
-            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml build web
-            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres api web || true
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml build api web
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres api web
             ${DOCKER} compose -f docker-compose.yml ps
 
             echo "[INFO] Deploy finished."

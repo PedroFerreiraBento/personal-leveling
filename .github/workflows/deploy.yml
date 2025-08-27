@@ -70,9 +70,10 @@ jobs:
           username: ${{ env.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
+          debug: true
           envs: DROPLET_APP_DIR
           script: |
-            set -euo pipefail
+            set -euxo pipefail
 
             REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
             TARGET_DIR="${DROPLET_APP_DIR:-$HOME/personal-leveling}"
@@ -100,44 +101,61 @@ jobs:
             echo "[INFO] Selecting docker invoker..."
             DOCKER_MODE=""
             if docker info >/dev/null 2>&1; then
-              DOCKER_MODE="direct"
-              echo "[INFO] Using direct docker"
+              DOCKER_MODE="direct"; echo "[INFO] Using direct docker"
             elif command -v sg >/dev/null 2>&1 && sg docker -c "docker info" >/dev/null 2>&1; then
-              DOCKER_MODE="sg"
-              echo "[INFO] Using sg docker"
-              echo "[INFO] sg groups (debug): $(sg docker -c 'id -nG' || true)"
+              DOCKER_MODE="sg"; echo "[INFO] Using sg docker"; sg docker -c 'id -nG' || true
             elif sudo -n docker info >/dev/null 2>&1; then
-              DOCKER_MODE="sudo"
-              echo "[INFO] Using sudo -n docker"
+              DOCKER_MODE="sudo"; echo "[INFO] Using sudo -n docker"
             else
               echo "[ERROR] Cannot run docker. Add user to 'docker' group and re-login, or configure sudo NOPASSWD for docker."
               exit 1
             fi
 
+            run_compose() {
+              if [ "$DOCKER_MODE" = "sg" ]; then
+                sg docker -c "docker compose $*"
+              elif [ "$DOCKER_MODE" = "sudo" ]; then
+                sudo -n docker compose "$@"
+              else
+                docker compose "$@"
+              fi
+            }
+
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
 
-            if [ -f docker-compose.yml ]; then
-              echo "[INFO] Compose found."
-
-              if [ "$DOCKER_MODE" = "sg" ]; then
-                sg docker -c "docker compose -f docker-compose.yml pull postgres web" || true
-                sg docker -c "docker compose -f docker-compose.yml build web"
-                sg docker -c "docker compose -f docker-compose.yml up -d postgres web"
-                sg docker -c "docker compose -f docker-compose.yml ps"
-              elif [ "$DOCKER_MODE" = "sudo" ]; then
-                sudo -n docker compose -f docker-compose.yml pull postgres web || true
-                sudo -n docker compose -f docker-compose.yml build web
-                sudo -n docker compose -f docker-compose.yml up -d postgres web
-                sudo -n docker compose -f docker-compose.yml ps
-              else
-                docker compose -f docker-compose.yml pull postgres web || true
-                docker compose -f docker-compose.yml build web
-                docker compose -f docker-compose.yml up -d postgres web
-                docker compose -f docker-compose.yml ps
-              fi
-            else
-              echo "[WARN] docker-compose.yml não encontrado em $TARGET_DIR"
+            if [ ! -f docker-compose.yml ]; then
+              echo "[ERROR] docker-compose.yml não encontrado em $TARGET_DIR"
+              exit 1
             fi
+
+            echo "[INFO] Validando compose…"
+            # Mostra o compose resolvido; se houver erro de sintaxe, ele aparece aqui
+            run_compose -f docker-compose.yml config
+
+            echo "[INFO] Pulando pull silencioso (se falhar veremos o erro):"
+            # Se você usa imagens privadas, esse comando vai denunciar falta de login
+            run_compose -f docker-compose.yml pull postgres web || true
+
+            echo "[INFO] Buildando (com logs verbosos)…"
+            # Remova --no-cache se não quiser rebuild completo
+            run_compose -f docker-compose.yml build web || { 
+              echo "[ERROR] Build do serviço 'web' falhou. Logs recentes do build (se houver):"; 
+              exit 1; 
+            }
+
+            echo "[INFO] Subindo containers…"
+            run_compose -f docker-compose.yml up -d postgres web || {
+              echo "[ERROR] Falha ao subir containers. Mostrando logs recentes:";
+              run_compose -f docker-compose.yml ps || true
+              run_compose -f docker-compose.yml logs --no-color --tail=200 postgres || true
+              run_compose -f docker-compose.yml logs --no-color --tail=200 web || true
+              exit 1
+            }
+
+            echo "[INFO] Estado final:"
+            run_compose -f docker-compose.yml ps
+            echo "[INFO] Últimas 100 linhas dos logs do 'web':"
+            run_compose -f docker-compose.yml logs --no-color --tail=100 web || true
 
             echo "[INFO] Deploy finished."

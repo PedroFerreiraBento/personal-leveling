@@ -85,18 +85,34 @@ jobs:
             echo "[INFO] Docker versions on remote:"
             (docker --version && docker compose version) 2>&1 || true
 
-            # --- Docker invoker selection: direct -> sg docker -> sudo -n docker -> error ---
+            # Quick diagnostics
+            echo "[INFO] whoami: $(whoami)"
+            echo "[INFO] groups: $(id -nG || true)"
+            ls -l /var/run/docker.sock || true
+
+            # --- Docker invoker selection: direct -> sg docker -> newgrp docker -> sudo -n docker -> error ---
             echo "[INFO] Selecting docker invoker..."
             INVOKER=""
             if docker info >/dev/null 2>&1; then
               DOCKER="docker"
               INVOKER="direct"
               echo "[INFO] Using direct docker"
-            elif command -v sg >/dev/null 2>&1 && id -nG | grep -q "\bdocker\b"; then
+            elif command -v sg >/dev/null 2>&1; then
+              # Try to run docker via sg regardless of current session groups
               if sg docker -c "docker info" >/dev/null 2>&1; then
                 DOCKER="docker"
                 INVOKER="sg"
                 echo "[INFO] Using sg docker"
+              fi
+            elif command -v newgrp >/dev/null 2>&1; then
+              # Try applying docker group via newgrp in a subshell regardless of current session groups
+              if newgrp docker <<'EOS'
+docker info >/dev/null 2>&1
+EOS
+              then
+                DOCKER="docker"
+                INVOKER="newgrp"
+                echo "[INFO] Using newgrp docker"
               fi
             fi
             if [ -z "$INVOKER" ]; then
@@ -114,6 +130,12 @@ jobs:
               case "$INVOKER" in
                 sg)
                   sg docker -c "docker $*"
+                  ;;
+                newgrp)
+                  # Run the docker command within a newgrp docker subshell
+                  newgrp docker <<EOS
+docker $*
+EOS
                   ;;
                 *)
                   $DOCKER "$@"

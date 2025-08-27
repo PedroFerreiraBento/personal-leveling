@@ -52,8 +52,17 @@ jobs:
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
             # Resolve APP_DIR from forwarded envs just in case one is empty
             APP_DIR="${APP_DIR:-${DROPLET_APP_DIR:-}}"
-            # Minimal debug: show only length to avoid leaking path
-            echo "[INFO] APP_DIR length: ${#APP_DIR} | DROPLET_APP_DIR length: ${#DROPLET_APP_DIR-0}"
+            # Minimal debug: POSIX-safe checks (no bash-specific substitutions)
+            if [ -n "${APP_DIR:-}" ]; then
+              echo "[INFO] APP_DIR provided via env"
+            else
+              echo "[INFO] APP_DIR empty"
+            fi
+            if [ -n "${DROPLET_APP_DIR:-}" ]; then
+              echo "[INFO] DROPLET_APP_DIR provided via env"
+            else
+              echo "[INFO] DROPLET_APP_DIR empty"
+            fi
             # Sanity check
             if [ -z "$APP_DIR" ]; then
               echo "[WARN] APP_DIR not provided via secrets; defaulting to $HOME/personal-leveling"

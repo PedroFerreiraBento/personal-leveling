@@ -74,9 +74,8 @@ jobs:
           debug: true
           envs: DROPLET_APP_DIR
           script: |
-            # POSIX shell (sh) friendly
+            # POSIX-friendly
             set -eu
-            # habilita trace sem 'pipefail' (incompatível com sh)
             set -x
 
             REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
@@ -102,13 +101,15 @@ jobs:
             ls -l /var/run/docker.sock || true
 
             echo "[INFO] Selecting docker mode..."
-            DOCKER_MODE=""
+            DOCKER="docker"
             if docker info >/dev/null 2>&1; then
-              DOCKER_MODE="direct"; echo "[INFO] Using direct docker"
+              echo "[INFO] Using direct docker"
             elif command -v sg >/dev/null 2>&1 && sg docker -c "docker info" >/dev/null 2>&1; then
-              DOCKER_MODE="sg"; echo "[INFO] Using sg docker"; sg docker -c 'id -nG' || true
+              DOCKER="sg docker -c docker"
+              echo "[INFO] Using sg docker"; sg docker -c 'id -nG' || true
             elif sudo -n docker info >/dev/null 2>&1; then
-              DOCKER_MODE="sudo"; echo "[INFO] Using sudo -n docker"
+              DOCKER="sudo -n docker"
+              echo "[INFO] Using sudo -n docker"
             else
               echo "[ERROR] Cannot run docker. Add user to 'docker' group or configure sudo NOPASSWD."
               exit 1
@@ -116,64 +117,59 @@ jobs:
 
             [ -f docker-compose.yml ] || { echo "[ERROR] docker-compose.yml não encontrado em $TARGET_DIR"; exit 1; }
 
-            # Usa .env se existir (sem arrays, sem vazar conteúdo)
+            # Pré-checagens comuns de YAML (Windows CRLF, TABs, ausência de 'services:')
+            echo "[INFO] Normalizando finais de linha (CRLF -> LF) se houver..."
+            sed -i 's/\r$//' docker-compose.yml || true
+
+            echo "[INFO] Checando TABs (YAML exige espaços):"
+            if grep -n "$(printf '\t')" docker-compose.yml >/dev/null 2>&1; then
+              echo "[ERROR] Há TABs no docker-compose.yml. Substitua por espaços. Linhas:"
+              grep -n "$(printf '\t')" docker-compose.yml || true
+              echo "------ Início do arquivo (1..120) ------"
+              nl -ba docker-compose.yml | sed -n '1,120p'
+              exit 1
+            fi
+
+            echo "[INFO] Heads-up: primeiras 40 linhas do compose:"
+            nl -ba docker-compose.yml | sed -n '1,40p' || true
+
+            echo "[INFO] Validando sintaxe (sem interpolação)…"
+            # Mostra erro real do parser do Compose
+            if ! ${DOCKER} compose -f docker-compose.yml config --no-interpolate; then
+              echo "[ERROR] 'docker compose config --no-interpolate' falhou."
+              echo "Causas comuns:"
+              echo " - Indentação errada / TABs"
+              echo " - Chave raiz 'services:' ausente"
+              echo " - Nível errado (ex.: 'build', 'image', 'ports' fora de 'services.<svc>')"
+              echo " - YAML inválido (dois pontos, aspas, vírgulas, etc.)"
+              echo "------ Preview do arquivo (1..200) ------"
+              nl -ba docker-compose.yml | sed -n '1,200p'
+              exit 1
+            fi
+
+            # Se quiser usar .env, deixe o arquivo no repo/remoto. Apenas avisa se existir.
             COMPOSE_ENV_ARG=""
             if [ -f .env ]; then
-              echo "[INFO] .env encontrado (variáveis ocultadas no log)"
-              # normaliza CRLF se necessário
+              echo "[INFO] .env encontrado (variáveis não serão expostas)."
               sed -i 's/\r$//' .env || true
               COMPOSE_ENV_ARG="--env-file .env"
-              echo "[INFO] .env keys:"
+              echo "[INFO] Chaves presentes em .env:"
               sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/  - \1/p' .env | sort | uniq | sed 's/^/    /'
             else
-              echo "[WARN] .env ausente. O compose dependerá apenas do ambiente atual."
+              echo "[WARN] .env ausente; composição dependerá do ambiente do shell."
             fi
 
-            echo "[INFO] Validando docker compose (sem interpolar, para pegar sintaxe primeiro)…"
-            if [ "$DOCKER_MODE" = "sg" ]; then
-              sg docker -c "docker compose -f docker-compose.yml config --no-interpolate" >/dev/null
-            elif [ "$DOCKER_MODE" = "sudo" ]; then
-              sudo -n docker compose -f docker-compose.yml config --no-interpolate >/dev/null
-            else
-              docker compose -f docker-compose.yml config --no-interpolate >/dev/null
-            fi
-
-            echo "[INFO] Validando docker compose (com interpolação se .env existir)…"
-            if [ -n "$COMPOSE_ENV_ARG" ]; then
-              if [ "$DOCKER_MODE" = "sg" ]; then
-                sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml config" >/dev/null
-              elif [ "$DOCKER_MODE" = "sudo" ]; then
-                sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml config >/dev/null
-              else
-                docker compose $COMPOSE_ENV_ARG -f docker-compose.yml config >/dev/null
-              fi
-            else
-              # sem .env, ainda assim tenta interpolar do ambiente
-              if [ "$DOCKER_MODE" = "sg" ]; then
-                sg docker -c "docker compose -f docker-compose.yml config" >/dev/null || true
-              elif [ "$DOCKER_MODE" = "sudo" ]; then
-                sudo -n docker compose -f docker-compose.yml config >/dev/null || true
-              else
-                docker compose -f docker-compose.yml config >/dev/null || true
-              fi
+            echo "[INFO] Validando com interpolação (se .env existir)…"
+            if ! ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml config; then
+              echo "[ERROR] 'docker compose config' falhou com interpolação."
+              echo "Provável variável ausente. Reveja .env/ambiente e docker-compose.yml."
+              exit 1
             fi
 
             echo "[INFO] Pull/build/up…"
-            if [ "$DOCKER_MODE" = "sg" ]; then
-              sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web" || true
-              sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml build web"
-              sg docker -c "docker compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web"
-              sg docker -c "docker compose -f docker-compose.yml ps"
-            elif [ "$DOCKER_MODE" = "sudo" ]; then
-              sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web || true
-              sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml build web
-              sudo -n docker compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web
-              sudo -n docker compose -f docker-compose.yml ps
-            else
-              docker compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web || true
-              docker compose $COMPOSE_ENV_ARG -f docker-compose.yml build web
-              docker compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web
-              docker compose -f docker-compose.yml ps
-            fi
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres web || true
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml build web
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres web
+            ${DOCKER} compose -f docker-compose.yml ps
 
             echo "[INFO] Deploy finished."

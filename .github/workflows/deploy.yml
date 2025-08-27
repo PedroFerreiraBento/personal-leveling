@@ -38,14 +38,16 @@ jobs:
 
       - name: Deploy over SSH (supports passphrase)
         uses: appleboy/ssh-action@v0.1.10
+        env:
+          APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          envs: APP_DIR
           script: |
             set -eu
-            APP_DIR=${{ secrets.DROPLET_APP_DIR }}
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
             # Sanity check
             if [ -z "$APP_DIR" ]; then

@@ -2,7 +2,7 @@ name: Deploy to Droplet
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -15,14 +15,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Materialize secrets into env (without exposing values)
-        # Coloca os secrets em variáveis do job (GITHUB_ENV) para checks/forward
         run: |
           {
             echo "DROPLET_HOST=${{ secrets.DROPLET_HOST }}"
             echo "DROPLET_USER=${{ secrets.DROPLET_USER }}"
             echo "SSH_PRIVATE_KEY_PRESENT=$([ -n '${{ secrets.SSH_PRIVATE_KEY }}' ] && echo 1 || echo 0)"
             echo "DROPLET_APP_DIR=${{ secrets.DROPLET_APP_DIR }}"
-            echo "SSH_PASSPHRASE_PRESENT=$([ -n '${{ secrets.SSH_PASSPHRASE }}' ] && echo 1 || echo 0)"
           } >> "$GITHUB_ENV"
 
       - name: Validate required secrets
@@ -31,7 +29,6 @@ jobs:
           set -euo pipefail
           missing=0
 
-          # checagens por comprimento (sem vazar valores)
           for v in DROPLET_HOST DROPLET_USER DROPLET_APP_DIR; do
             val="${!v:-}"
             if [[ -z "$val" ]]; then
@@ -49,10 +46,6 @@ jobs:
             echo "::notice title=Secret present::SSH_PRIVATE_KEY is set"
           fi
 
-          if [[ "${SSH_PASSPHRASE_PRESENT:-0}" != "1" ]]; then
-            echo "::notice::SSH_PASSPHRASE not provided (ok if your key has no passphrase)."
-          fi
-
           [[ "$missing" -eq 0 ]]
 
       - name: Write private key to file
@@ -62,24 +55,19 @@ jobs:
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
 
-          # grava o secret com quebras de linha preservadas
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > "$HOME/.ssh/id_key"
-
-          # normaliza quebras de linha Windows, se houver
           sed -i 's/\r$//' "$HOME/.ssh/id_key"
           chmod 600 "$HOME/.ssh/id_key"
 
           echo "SSH_KEY_PATH=$HOME/.ssh/id_key" >> "$GITHUB_ENV"
 
-      - name: Deploy over SSH (supports passphrase)
+      - name: Deploy over SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ env.DROPLET_HOST }}
           username: ${{ env.DROPLET_USER }}
           key_path: ${{ env.SSH_KEY_PATH }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script_stop: true
-          # Se quiser reenviar APP_DIR como env para o host, inclua em envs e defina abaixo em `env:`
           envs: APP_DIR
           script: |
             set -euo pipefail
@@ -87,7 +75,6 @@ jobs:
 
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
 
-            # Preferência: APP_DIR vindo do job; se vazio, usa fallback no HOME do remoto
             if [[ -n "${APP_DIR:-}" ]]; then
               TARGET_DIR="$APP_DIR"
             else
@@ -105,6 +92,7 @@ jobs:
 
             echo "[INFO] Docker versions on remote:"
             (docker --version && docker compose version) 2>&1 || true
+
             use_sg=0
             if docker info >/dev/null 2>&1; then
               echo "[INFO] docker funciona direto."
@@ -144,5 +132,4 @@ jobs:
             echo "[INFO] Deploy finished."
 
         env:
-          # APP_DIR é seguro reenviar como env; vem do secret mas não aparece em logs
           APP_DIR: ${{ env.DROPLET_APP_DIR }}

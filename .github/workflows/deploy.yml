@@ -72,14 +72,14 @@ jobs:
           script_stop: true
           debug: true
           envs: DROPLET_APP_DIR
-        script: |
-          set -euxo pipefail
+          script: |
+            set -euxo pipefail
 
-          REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-          TARGET_DIR="${DROPLET_APP_DIR:-$HOME/personal-leveling}"
+            REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+            TARGET_DIR="${DROPLET_APP_DIR:-$HOME/personal-leveling}"
 
-          echo "[INFO] TARGET_DIR=$TARGET_DIR"
-          mkdir -p "$TARGET_DIR"
+            echo "[INFO] TARGET_DIR=$TARGET_DIR"
+            mkdir -p "$TARGET_DIR"
 
             if [ ! -d "$TARGET_DIR/.git" ]; then
               echo "[INFO] Clonando repo em $TARGET_DIR"

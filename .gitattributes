@@ -1,0 +1,32 @@
+# Enforce LF line endings in scripts and YAML to avoid remote shell syntax issues
+* text=auto eol=lf
+
+# Workflows and YAML
+*.yml text eol=lf
+*.yaml text eol=lf
+.github/workflows/* text eol=lf
+
+# Shell scripts and Docker-related files
+*.sh text eol=lf
+Dockerfile text eol=lf
+**/Dockerfile text eol=lf
+
+# JS/TS and JSON (often safe as LF)
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+
+# CSS/HTML
+*.css text eol=lf
+*.html text eol=lf
+
+# Do not auto-normalize binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg text eol=lf

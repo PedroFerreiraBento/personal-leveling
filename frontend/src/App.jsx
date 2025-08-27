@@ -7,6 +7,7 @@ import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import Activities from './components/Activities'
 import Tasks from './components/Tasks'
+import Notes from './components/Notes'
 
 // Context
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -21,6 +22,7 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+            <Route path="/notes" element={<Notes />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>

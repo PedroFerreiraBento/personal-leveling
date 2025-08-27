@@ -151,15 +151,23 @@ jobs:
               set +a
               set -o xtrace
             fi
+            # Turn off xtrace to avoid echoing sensitive values during checks
+            set +o xtrace
             missing_env=0
             for v in FRONTEND_URL PGDATABASE PGPASSWORD PGUSER PUBLIC_API_URL SITE_DOMAIN; do
-              if [ -z "${!v:-}" ]; then
-                echo "[ERROR] Variável obrigatória ausente ou vazia: $v (defina em .env ou no ambiente)"
-                missing_env=1
-              else
-                echo "[OK] $v presente"
-              fi
+              val="${!v-}"
+              case "$val" in
+                "")
+                  echo "[ERROR] Variável obrigatória ausente ou vazia: $v (defina em .env ou no ambiente)"
+                  missing_env=1
+                  ;;
+                *)
+                  echo "[OK] $v presente"
+                  ;;
+              esac
             done
+            # Re-enable xtrace for subsequent steps
+            set -o xtrace
             if [ "$missing_env" -ne 0 ]; then
               echo "[ERROR] Falta variável(ais) obrigatória(s). Abortando antes do docker compose."
               exit 1

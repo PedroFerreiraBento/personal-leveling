@@ -105,17 +105,23 @@ jobs:
 
             echo "[INFO] Docker versions on remote:"
             (docker --version && docker compose version) 2>&1 || true
-
-            if ! docker info >/dev/null 2>&1; then
-              echo "[INFO] docker requires sudo. Checking passwordless sudo..."
-              if sudo -n true 2>/dev/null; then
+            use_sg=0
+            if docker info >/dev/null 2>&1; then
+              echo "[INFO] docker funciona direto."
+              DOCKER="docker"
+            else
+              if id -nG "$USER" | grep -qw docker; then
+                echo "[INFO] Usuário está no grupo docker, mas a sessão não herdou. Usando 'sg docker -c'."
+                use_sg=1
+              elif sudo -n docker info >/dev/null 2>&1; then
+                echo "[INFO] Usando 'sudo -n docker'."
                 DOCKER="sudo -n docker"
               else
-                echo "[ERROR] Configure passwordless sudo for docker or add user to docker group."
+                echo "[ERROR] Sem permissão para usar docker."
+                echo "→ Adicione o usuário ao grupo docker: sudo usermod -aG docker $USER"
+                echo "→ Ou configure sudo NOPASSWD para /usr/bin/docker"
                 exit 1
               fi
-            else
-              DOCKER="docker"
             fi
 
             git fetch --all --prune

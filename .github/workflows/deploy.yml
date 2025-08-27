@@ -71,15 +71,27 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           debug: true
-          envs: DROPLET_APP_DIR
-          script: |
-            set -euxo pipefail
+          envs: DROPLET_APP_DIR,PGDATABASE,PGUSER,PGPASSWORD,PUBLIC_API_URL,FRONTEND_URL
+        env:
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+        script: |
+          set -euxo pipefail
 
-            REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-            TARGET_DIR="${DROPLET_APP_DIR:-$HOME/personal-leveling}"
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+          TARGET_DIR="${DROPLET_APP_DIR:-$HOME/personal-leveling}"
 
-            echo "[INFO] TARGET_DIR=$TARGET_DIR"
-            mkdir -p "$TARGET_DIR"
+          echo "[INFO] TARGET_DIR=$TARGET_DIR"
+          echo "[INFO] Env presence:"
+          test -n "${PGDATABASE:-}" && echo "  - PGDATABASE: set" || echo "  - PGDATABASE: (unset)"
+          test -n "${PGUSER:-}"     && echo "  - PGUSER: set"     || echo "  - PGUSER: (unset)"
+          test -n "${PGPASSWORD:-}" && echo "  - PGPASSWORD: set" || echo "  - PGPASSWORD: (unset)"
+          test -n "${PUBLIC_API_URL:-}" && echo "  - PUBLIC_API_URL: set" || echo "  - PUBLIC_API_URL: (unset)"
+          test -n "${FRONTEND_URL:-}"   && echo "  - FRONTEND_URL: set"   || echo "  - FRONTEND_URL: (unset)"
+          mkdir -p "$TARGET_DIR"
 
             if [ ! -d "$TARGET_DIR/.git" ]; then
               echo "[INFO] Clonando repo em $TARGET_DIR"
@@ -130,8 +142,22 @@ jobs:
             fi
 
             echo "[INFO] Validando compose…"
-            # Mostra o compose resolvido; se houver erro de sintaxe, ele aparece aqui
+            echo "[INFO] docker compose config (with interpolation)"
+            set +e
             run_compose -f docker-compose.yml config
+            CONFIG_RC=$?
+            set -e
+            if [ "$CONFIG_RC" -ne 0 ]; then
+              echo "[WARN] docker compose config falhou. Tentando sem interpolação para isolar erro de variáveis…"
+              set +e
+              run_compose -f docker-compose.yml config --no-interpolate
+              NOINT_RC=$?
+              set -e
+              if [ "$NOINT_RC" -ne 0 ]; then
+                echo "[ERROR] docker compose config --no-interpolate também falhou. Saída acima."
+                exit 1
+              fi
+            fi
 
             echo "[INFO] Pulando pull silencioso (se falhar veremos o erro):"
             # Se você usa imagens privadas, esse comando vai denunciar falta de login

@@ -16,19 +16,11 @@ jobs:
       - name: Check required secrets
         run: |
           missing=0
-          for v in DROPLET_HOST DROPLET_USER SSH_PRIVATE_KEY; do
-            if [ -z "${{ secrets[format('{0}', v)] }}" ]; then
-              echo "Missing secret: $v"
-              missing=1
-            fi
-          done
-          # Validate DROPLET_APP_DIR explicitly
-          if [ -z "${{ secrets.DROPLET_APP_DIR }}" ]; then
-            echo "Missing secret: DROPLET_APP_DIR"
-            missing=1
-          else
-            echo "DROPLET_APP_DIR is set (length hidden)"
-          fi
+          # Explicit checks (GitHub Expressions do not allow dynamic indexing in a loop)
+          if [ -z "${{ secrets.DROPLET_HOST }}" ]; then echo "Missing secret: DROPLET_HOST"; missing=1; fi
+          if [ -z "${{ secrets.DROPLET_USER }}" ]; then echo "Missing secret: DROPLET_USER"; missing=1; fi
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then echo "Missing secret: SSH_PRIVATE_KEY"; missing=1; fi
+          if [ -z "${{ secrets.DROPLET_APP_DIR }}" ]; then echo "Missing secret: DROPLET_APP_DIR"; missing=1; else echo "DROPLET_APP_DIR is set (length hidden)"; fi
           if [ -z "${{ secrets.SSH_PASSPHRASE }}" ]; then
             echo "::notice::SSH_PASSPHRASE not provided. If your key has a passphrase, add secret SSH_PASSPHRASE."
           fi

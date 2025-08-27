@@ -13,22 +13,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate required secrets
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
-          DROPLET_USER: ${{ secrets.DROPLET_USER }}
-          DROPLET_APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
-          SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+      - name: Check required secrets
         run: |
           missing=0
-          for var in SSH_PRIVATE_KEY DROPLET_HOST DROPLET_USER DROPLET_APP_DIR; do
-            if [ -z "${!var}" ]; then
-              echo "::error::Missing required secret: $var"
+          for v in DROPLET_HOST DROPLET_USER SSH_PRIVATE_KEY; do
+            if [ -z "${{ secrets[format('{0}', v)] }}" ]; then
+              echo "Missing secret: $v"
               missing=1
             fi
           done
-          if [ -z "${SSH_PASSPHRASE}" ]; then
+          # Validate DROPLET_APP_DIR explicitly
+          if [ -z "${{ secrets.DROPLET_APP_DIR }}" ]; then
+            echo "Missing secret: DROPLET_APP_DIR"
+            missing=1
+          else
+            echo "DROPLET_APP_DIR is set (length hidden)"
+          fi
+          if [ -z "${{ secrets.SSH_PASSPHRASE }}" ]; then
             echo "::notice::SSH_PASSPHRASE not provided. If your key has a passphrase, add secret SSH_PASSPHRASE."
           fi
           if [ "$missing" -eq 1 ]; then
@@ -36,35 +37,23 @@ jobs:
             exit 1
           fi
 
-          
       - name: Deploy over SSH (supports passphrase)
         uses: appleboy/ssh-action@v0.1.10
-        env:
-          APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
-          DROPLET_APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          envs: APP_DIR,DROPLET_APP_DIR
           script: |
             set -eu
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
             # Force APP_DIR directly from secret to bypass any env forwarding issues
             APP_DIR="${{ secrets.DROPLET_APP_DIR }}"
-            # Resolve APP_DIR from forwarded envs just in case one is empty
-            APP_DIR="${APP_DIR:-${DROPLET_APP_DIR:-}}"
             # Minimal debug: POSIX-safe checks (no bash-specific substitutions)
             if [ -n "${APP_DIR:-}" ]; then
               echo "[INFO] APP_DIR provided via env"
             else
               echo "[INFO] APP_DIR empty"
-            fi
-            if [ -n "${DROPLET_APP_DIR:-}" ]; then
-              echo "[INFO] DROPLET_APP_DIR provided via env"
-            else
-              echo "[INFO] DROPLET_APP_DIR empty"
             fi
             # Sanity check
             if [ -z "$APP_DIR" ]; then

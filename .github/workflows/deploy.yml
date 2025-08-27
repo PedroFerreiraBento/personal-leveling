@@ -61,6 +61,22 @@ jobs:
 
           echo "SSH_KEY_PATH=$HOME/.ssh/id_key" >> "$GITHUB_ENV"
 
+      - name: Test SSH connectivity
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.DROPLET_HOST }}
+          username: ${{ env.DROPLET_USER }}
+          key_path: ${{ env.SSH_KEY_PATH }}
+          script_stop: true
+          script: |
+            set -eu
+            echo "[TEST] Connected to $(hostname)"
+            echo "[TEST] whoami: $(whoami)"
+            echo "[TEST] uptime: $(uptime)"
+            echo "[TEST] pwd: $(pwd)"
+            echo "[TEST] ls ~"
+            ls -la ~ || true
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v0.1.10
         with:

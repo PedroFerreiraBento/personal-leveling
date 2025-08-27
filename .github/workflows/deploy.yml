@@ -51,6 +51,8 @@ jobs:
           script: |
             set -eu
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
+            # Force APP_DIR directly from secret to bypass any env forwarding issues
+            APP_DIR="${{ secrets.DROPLET_APP_DIR }}"
             # Resolve APP_DIR from forwarded envs just in case one is empty
             APP_DIR="${APP_DIR:-${DROPLET_APP_DIR:-}}"
             # Minimal debug: POSIX-safe checks (no bash-specific substitutions)

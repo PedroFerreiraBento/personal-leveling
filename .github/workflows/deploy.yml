@@ -8,91 +8,128 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # environment: prod  # <-- use apenas se seus segredos estão num Environment chamado "prod"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check required secrets
+      - name: Materialize secrets into env (without exposing values)
+        # Coloca os secrets em variáveis do job (GITHUB_ENV) para checks/forward
         run: |
+          {
+            echo "DROPLET_HOST=${{ secrets.DROPLET_HOST }}"
+            echo "DROPLET_USER=${{ secrets.DROPLET_USER }}"
+            echo "SSH_PRIVATE_KEY_PRESENT=$([ -n '${{ secrets.SSH_PRIVATE_KEY }}' ] && echo 1 || echo 0)"
+            echo "DROPLET_APP_DIR=${{ secrets.DROPLET_APP_DIR }}"
+            echo "SSH_PASSPHRASE_PRESENT=$([ -n '${{ secrets.SSH_PASSPHRASE }}' ] && echo 1 || echo 0)"
+          } >> "$GITHUB_ENV"
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
           missing=0
-          # Explicit checks (GitHub Expressions do not allow dynamic indexing in a loop)
-          if [ -z "${{ secrets.DROPLET_HOST }}" ]; then echo "Missing secret: DROPLET_HOST"; missing=1; fi
-          if [ -z "${{ secrets.DROPLET_USER }}" ]; then echo "Missing secret: DROPLET_USER"; missing=1; fi
-          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then echo "Missing secret: SSH_PRIVATE_KEY"; missing=1; fi
-          if [ -z "${{ secrets.DROPLET_APP_DIR }}" ]; then echo "Missing secret: DROPLET_APP_DIR"; missing=1; else echo "DROPLET_APP_DIR is set (length hidden)"; fi
-          if [ -z "${{ secrets.SSH_PASSPHRASE }}" ]; then
-            echo "::notice::SSH_PASSPHRASE not provided. If your key has a passphrase, add secret SSH_PASSPHRASE."
+
+          # checagens por comprimento (sem vazar valores)
+          for v in DROPLET_HOST DROPLET_USER DROPLET_APP_DIR; do
+            val="${!v:-}"
+            if [[ -z "$val" ]]; then
+              echo "::error title=Missing secret::$v is EMPTY (check Secrets scope/name)"
+              missing=1
+            else
+              echo "::notice title=Secret present::$v length=${#val}"
+            fi
+          done
+
+          if [[ "${SSH_PRIVATE_KEY_PRESENT:-0}" != "1" ]]; then
+            echo "::error title=Missing secret::SSH_PRIVATE_KEY is EMPTY"
+            missing=1
+          else
+            echo "::notice title=Secret present::SSH_PRIVATE_KEY is set"
           fi
-          if [ "$missing" -eq 1 ]; then
-            echo "One or more required secrets are missing. Configure them in GitHub → Settings → Secrets and variables → Actions."
-            exit 1
+
+          if [[ "${SSH_PASSPHRASE_PRESENT:-0}" != "1" ]]; then
+            echo "::notice::SSH_PASSPHRASE not provided (ok if your key has no passphrase)."
           fi
+
+          [[ "$missing" -eq 0 ]]
+
+      - name: Write private key to file (required by many SSH clients)
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          # usa o secret diretamente para criar o arquivo; nunca ecoe o conteúdo
+          printf "%s" '${{ secrets.SSH_PRIVATE_KEY }}' > ~/.ssh/id_key
+          echo "SSH_KEY_PATH=$HOME/.ssh/id_key" >> "$GITHUB_ENV"
 
       - name: Deploy over SSH (supports passphrase)
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ env.DROPLET_HOST }}
+          username: ${{ env.DROPLET_USER }}
+          key_path: ${{ env.SSH_KEY_PATH }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script_stop: true
+          # Se quiser reenviar APP_DIR como env para o host, inclua em envs e defina abaixo em `env:`
+          envs: APP_DIR
           script: |
-            set -eu
+            set -euo pipefail
+            echo "[REMOTE] APP_DIR on remote: ${APP_DIR:-<empty>}"
+
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
-            # Force APP_DIR directly from secret to bypass any env forwarding issues
-            APP_DIR="${{ secrets.DROPLET_APP_DIR }}"
-            # Minimal debug: POSIX-safe checks (no bash-specific substitutions)
-            if [ -n "${APP_DIR:-}" ]; then
-              echo "[INFO] APP_DIR provided via env"
+
+            # Preferência: APP_DIR vindo do job; se vazio, usa fallback no HOME do remoto
+            if [[ -n "${APP_DIR:-}" ]]; then
+              TARGET_DIR="$APP_DIR"
             else
-              echo "[INFO] APP_DIR empty"
+              echo "[WARN] APP_DIR empty; defaulting to \$HOME/personal-leveling"
+              TARGET_DIR="$HOME/personal-leveling"
             fi
-            # Sanity check
-            if [ -z "$APP_DIR" ]; then
-              echo "[WARN] APP_DIR not provided via secrets; defaulting to $HOME/personal-leveling"
-              APP_DIR="$HOME/personal-leveling"
+
+            echo "[REMOTE] Using dir: $TARGET_DIR"
+            if [[ ! -d "$TARGET_DIR/.git" ]]; then
+              mkdir -p "$TARGET_DIR"
+              git clone "$REPO_URL" "$TARGET_DIR"
             fi
-            if [ ! -d "$APP_DIR/.git" ]; then
-              mkdir -p "$APP_DIR"
-              git clone "$REPO_URL" "$APP_DIR"
-            fi
-            cd "$APP_DIR"
+
+            cd "$TARGET_DIR"
+
             echo "[INFO] Docker versions on remote:"
             (docker --version && docker compose version) 2>&1 || true
-            # Use sudo for docker if necessary (non-interactive)
+
             if ! docker info >/dev/null 2>&1; then
-              echo "[INFO] docker requires sudo. Verifying passwordless sudo..."
+              echo "[INFO] docker requires sudo. Checking passwordless sudo..."
               if sudo -n true 2>/dev/null; then
-                echo "[INFO] Using sudo -n for docker"
                 DOCKER="sudo -n docker"
               else
-                echo "[ERROR] Passwordless sudo is not configured for this user. Configure NOPASSWD for docker or add user to docker group, then retry."
+                echo "[ERROR] Configure passwordless sudo for docker or add user to docker group."
                 exit 1
               fi
             else
               DOCKER="docker"
             fi
-            git fetch --all --prune 2>&1
-            git reset --hard origin/main 2>&1
+
+            git fetch --all --prune
+            git reset --hard origin/main
+
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
-            # Only web and postgres, using base compose (no caddy/prod)
-            COMPOSE_FILES="-f docker-compose.yml"
-            COMPOSE="$DOCKER compose $COMPOSE_FILES"
-            # Build & start only required services
-            echo "[INFO] Pulling images (postgres, web) if present..."
-            $COMPOSE pull postgres web 2>&1 || true
-            echo "[INFO] Building web image..."
-            if ! $COMPOSE build --no-cache web; then
-              echo "[ERROR] Build failed (service: web). Check the build output above."
-              exit 1
-            fi
-            echo "[INFO] Starting services (postgres, web)..."
-            if ! $COMPOSE up -d postgres web; then
-              echo "[ERROR] Up failed. Recent service logs:"
-              $COMPOSE logs --tail=200 web || true
-              $COMPOSE logs --tail=200 postgres || true
-              exit 1
-            fi
-            $COMPOSE ps 2>&1
-            echo "[INFO] Deploy finished for services: postgres, web"
+            COMPOSE="$DOCKER compose -f docker-compose.yml"
+
+            echo "[INFO] Pull images if available..."
+            $COMPOSE pull postgres web || true
+
+            echo "[INFO] Build web..."
+            $COMPOSE build --no-cache web
+
+            echo "[INFO] Up services..."
+            $COMPOSE up -d postgres web
+
+            $COMPOSE ps
+            echo "[INFO] Deploy finished."
+
+        env:
+          # APP_DIR é seguro reenviar como env; vem do secret mas não aparece em logs
+          APP_DIR: ${{ env.DROPLET_APP_DIR }}

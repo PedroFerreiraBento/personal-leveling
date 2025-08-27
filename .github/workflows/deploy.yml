@@ -13,7 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1) Materializa segredos em variáveis de ambiente do job (sem printar valores)
       - name: Materialize secrets into env (without exposing values)
         run: |
           {
@@ -23,7 +22,6 @@ jobs:
             echo "SSH_PRIVATE_KEY_PRESENT=$([ -n '${{ secrets.SSH_PRIVATE_KEY }}' ] && echo 1 || echo 0)"
           } >> "$GITHUB_ENV"
 
-      # 2) Valida obrigatórios
       - name: Validate required secrets
         shell: bash
         run: |
@@ -31,42 +29,30 @@ jobs:
           missing=0
 
           for v in DROPLET_HOST DROPLET_USER DROPLET_APP_DIR; do
-            if [ -z "${!v:-}" ]; then
+            val="${!v:-}"
+            if [[ -z "$val" ]]; then
               echo "::error title=Missing secret::$v is EMPTY (check Secrets scope/name)"
               missing=1
             else
-              echo "::notice title=Secret present::$v length=${#v}"
+              echo "::notice title=Secret present::$v length=${#val}"
             fi
           done
 
-          if [ "${SSH_PRIVATE_KEY_PRESENT:-0}" != "1" ]; then
+          if [[ "${SSH_PRIVATE_KEY_PRESENT:-0}" != "1" ]]; then
             echo "::error title=Missing secret::SSH_PRIVATE_KEY is EMPTY"
             missing=1
           else
             echo "::notice title=Secret present::SSH_PRIVATE_KEY is set"
           fi
 
-          [ "$missing" -eq 0 ]
+          [[ "$missing" -eq 0 ]]
 
-      # 3) Escreve a chave em arquivo (opcional; você poderia usar 'key:' direto no action)
-      - name: Write private key to file
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.ssh"
-          chmod 700 "$HOME/.ssh"
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > "$HOME/.ssh/id_key"
-          sed -i 's/\r$//' "$HOME/.ssh/id_key"
-          chmod 600 "$HOME/.ssh/id_key"
-          echo "SSH_KEY_PATH=$HOME/.ssh/id_key" >> "$GITHUB_ENV"
-
-      # 4) Smoke test SSH
       - name: Test SSH connectivity
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ env.DROPLET_HOST }}
           username: ${{ env.DROPLET_USER }}
-          key_path: ${{ env.SSH_KEY_PATH }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           script: |
             set -euo pipefail
@@ -77,15 +63,13 @@ jobs:
             echo "[TEST] Home listing:"
             ls -la ~ || true
 
-      # 5) Deploy
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ env.DROPLET_HOST }}
           username: ${{ env.DROPLET_USER }}
-          key_path: ${{ env.SSH_KEY_PATH }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
-          # IMPORTANTE: envie o nome CERTO da env para o remoto
           envs: DROPLET_APP_DIR
           script: |
             set -euo pipefail
@@ -113,22 +97,15 @@ jobs:
             echo "[INFO] groups: $(id -nG || true)"
             ls -l /var/run/docker.sock || true
 
-            # --- Seleção do invocador docker: direto -> sg -> sudo -n -> erro ---
             echo "[INFO] Selecting docker invoker..."
             INVOKER=""
             if docker info >/dev/null 2>&1; then
-              DOCKER="docker"
-              INVOKER="direct"
-              echo "[INFO] Using direct docker"
+              DOCKER="docker"; INVOKER="direct"; echo "[INFO] Using direct docker"
             elif command -v sg >/dev/null 2>&1 && sg docker -c "docker info" >/dev/null 2>&1; then
-              DOCKER="docker"
-              INVOKER="sg"
-              echo "[INFO] Using sg docker"
+              DOCKER="docker"; INVOKER="sg"; echo "[INFO] Using sg docker"
               echo "[INFO] sg groups (debug): $(sg docker -c 'id -nG' || true)"
             elif sudo -n docker info >/dev/null 2>&1; then
-              DOCKER="sudo -n docker"
-              INVOKER="sudo"
-              echo "[INFO] Using sudo -n docker"
+              DOCKER="sudo -n docker"; INVOKER="sudo"; echo "[INFO] Using sudo -n docker"
             else
               echo "[ERROR] Cannot run docker. Add user to 'docker' group and re-login, or configure sudo NOPASSWD for docker."
               exit 1
@@ -144,7 +121,6 @@ jobs:
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
 
-            # Ajuste conforme seu compose
             if [ -f docker-compose.yml ]; then
               echo "[INFO] Compose found."
               run_docker compose -f docker-compose.yml pull postgres web || true

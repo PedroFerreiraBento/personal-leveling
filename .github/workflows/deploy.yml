@@ -40,19 +40,24 @@ jobs:
         uses: appleboy/ssh-action@v0.1.10
         env:
           APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
+          DROPLET_APP_DIR: ${{ secrets.DROPLET_APP_DIR }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          envs: APP_DIR
+          envs: APP_DIR,DROPLET_APP_DIR
           script: |
             set -eu
             REPO_URL=${{ github.server_url }}/${{ github.repository }}.git
+            # Resolve APP_DIR from forwarded envs just in case one is empty
+            APP_DIR="${APP_DIR:-${DROPLET_APP_DIR:-}}"
+            # Minimal debug: show only length to avoid leaking path
+            echo "[INFO] APP_DIR length: ${#APP_DIR} | DROPLET_APP_DIR length: ${#DROPLET_APP_DIR-0}"
             # Sanity check
             if [ -z "$APP_DIR" ]; then
-              echo "[ERROR] DROPLET_APP_DIR is empty"
-              exit 1
+              echo "[WARN] APP_DIR not provided via secrets; defaulting to $HOME/personal-leveling"
+              APP_DIR="$HOME/personal-leveling"
             fi
             if [ ! -d "$APP_DIR/.git" ]; then
               mkdir -p "$APP_DIR"

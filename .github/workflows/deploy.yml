@@ -85,23 +85,40 @@ jobs:
             echo "[INFO] Docker versions on remote:"
             (docker --version && docker compose version) 2>&1 || true
 
-            # --- Docker invoker: direct -> sg docker -> sudo -n docker -> fail (POSIX) ---
-            USER_NAME="$(id -un)"
-            use_sg=0
+            # --- Docker invoker selection: direct -> sg docker -> sudo -n docker -> error ---
+            echo "[INFO] Selecting docker invoker..."
+            INVOKER=""
             if docker info >/dev/null 2>&1; then
               DOCKER="docker"
-            else
-              sg docker -c "id -nG"
-              echo "[ERROR] Usuário não consegue usar docker. Verifique se está no grupo docker e relogou."
-              exit 1
+              INVOKER="direct"
+              echo "[INFO] Using direct docker"
+            elif command -v sg >/dev/null 2>&1 && id -nG | grep -q "\bdocker\b"; then
+              if sg docker -c "docker info" >/dev/null 2>&1; then
+                DOCKER="docker"
+                INVOKER="sg"
+                echo "[INFO] Using sg docker"
+              fi
+            fi
+            if [ -z "$INVOKER" ]; then
+              if sudo -n docker info >/dev/null 2>&1; then
+                DOCKER="sudo -n docker"
+                INVOKER="sudo"
+                echo "[INFO] Using sudo -n docker"
+              else
+                echo "[ERROR] Cannot run docker. Add user to docker group and re-login, or configure sudo NOPASSWD for docker."
+                exit 1
+              fi
             fi
 
             run_docker() {
-              if [ "$use_sg" -eq 1 ]; then
-                sg docker -c "docker $*"
-              else
-                $DOCKER "$@"
-              fi
+              case "$INVOKER" in
+                sg)
+                  sg docker -c "docker $*"
+                  ;;
+                *)
+                  $DOCKER "$@"
+                  ;;
+              esac
             }
 
             export DOCKER_BUILDKIT=1

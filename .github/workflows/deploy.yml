@@ -157,15 +157,12 @@ jobs:
             missing_env=0
             for v in FRONTEND_URL PGDATABASE PGPASSWORD PGUSER PUBLIC_API_URL SITE_DOMAIN; do
               val="${!v-}"
-              case "$val" in
-                "")
-                  echo "[ERROR] Variável obrigatória ausente ou vazia: $v (defina em .env ou no ambiente)"
-                  missing_env=1
-                  ;;
-                *)
-                  echo "[OK] $v presente"
-                  ;;
-              esac
+              if [ -z "$val" ]; then
+                echo "[ERROR] Variável obrigatória ausente ou vazia: $v (defina em .env ou no ambiente)"
+                missing_env=1
+              else
+                echo "[OK] $v presente"
+              fi
             done
             # Re-enable xtrace for subsequent steps
             set -x

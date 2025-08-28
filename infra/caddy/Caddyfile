@@ -19,11 +19,4 @@
     # Contato para Let's Encrypt
     email pedro.techfinance@gmail.com
   }
-
-  # HTTP/3 QUIC
-  servers {
-    protocol {
-      experimental_http3
-    }
-  }
 }

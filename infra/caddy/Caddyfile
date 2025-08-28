@@ -14,9 +14,5 @@
     }
   }
 
-  # Opções recomendadas de TLS/HTTP3
-  tls {
-    # Contato para Let's Encrypt
-    email pedro.techfinance@gmail.com
-  }
+  tls pedro.techfinance@gmail.com
 }

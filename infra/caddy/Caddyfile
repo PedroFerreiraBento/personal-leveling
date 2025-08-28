@@ -1,4 +1,4 @@
-{$SITE_DOMAIN} {
+{$SITE_DOMAIN}, www.{$SITE_DOMAIN} {
   encode zstd gzip
 
   # Frontend estático servido pelo Nginx interno
@@ -13,6 +13,10 @@
       reverse_proxy web:80
     }
   }
+
+  # Redireciona www -> apex para URL canônica
+  @www host www.{$SITE_DOMAIN}
+  redir @www https://{$SITE_DOMAIN}{uri} permanent
 
   tls pedro.techfinance@gmail.com
 }

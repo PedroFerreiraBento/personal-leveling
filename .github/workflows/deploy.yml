@@ -90,6 +90,15 @@ jobs:
             fi
 
             cd "$TARGET_DIR"
+            echo "[INFO] Configurando sparse-checkout para excluir data/postgres…"
+            git config core.sparseCheckout true || true
+            # Usa modo não-cone para permitir exclusões diretas
+            mkdir -p .git/info
+            {
+              echo "/*"
+              echo "!/data/postgres/**"
+            } > .git/info/sparse-checkout
+
             echo "[INFO] Atualizando repo"
             git fetch --all --prune
             git reset --hard origin/main

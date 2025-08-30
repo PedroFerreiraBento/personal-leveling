@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${PGUSER}
       POSTGRES_PASSWORD: ${PGPASSWORD}
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
@@ -76,3 +76,4 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  postgres_data:

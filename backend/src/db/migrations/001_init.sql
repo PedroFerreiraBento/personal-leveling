@@ -160,3 +160,81 @@ CREATE TRIGGER update_tasks_updated_at
     BEFORE UPDATE ON tasks 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Bootstrap: if database has no users, create a placeholder user and seed categories for it (idempotent)
+DO $$
+DECLARE
+  bootstrap_id text := md5('bootstrap_user_v1');
+BEGIN
+  IF (SELECT COUNT(*) FROM users) = 0 THEN
+    -- Create placeholder user
+    INSERT INTO users (id, email, password_hash, created_at)
+    VALUES (bootstrap_id, 'bootstrap@local', 'YWRtaW4=', CURRENT_TIMESTAMP) -- 'admin' base64 for temporary bootstrap
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Ensure default categories exist for this user
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Movimento'), bootstrap_id, 'Movimento', 'Atividades físicas e condicionamento.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Descanso'), bootstrap_id, 'Descanso', 'Sono, pausas e recuperação.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Nutrição'), bootstrap_id, 'Nutrição', 'Alimentação e hidratação.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Saúde'), bootstrap_id, 'Saúde', 'Cuidados médicos, terapias e prevenção.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Foco'), bootstrap_id, 'Foco', 'Blocos de concentração sem distrações.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Planejamento'), bootstrap_id, 'Planejamento', 'Prioridades, agenda e organização do dia.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Estudo'), bootstrap_id, 'Estudo', 'Aprendizado teórico, cursos e leituras.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Prática'), bootstrap_id, 'Prática', 'Treino técnico e exercícios aplicados.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Entrega'), bootstrap_id, 'Entrega', 'Conclusões, publicações e resultados.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Finanças'), bootstrap_id, 'Finanças', 'Ganhos, gastos, dívidas e investimentos.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Relações'), bootstrap_id, 'Relações', 'Família, amigos, networking e mentoria.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Resiliência'), bootstrap_id, 'Resiliência', 'Gestão emocional e autocuidado.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Disciplina'), bootstrap_id, 'Disciplina', 'Rotinas, hábitos e consistência.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Criatividade'), bootstrap_id, 'Criatividade', 'Ideação, design e expressão criativa.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Lazer'), bootstrap_id, 'Lazer', 'Recreação intencional e hobbies.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+
+    INSERT INTO categories (id, user_id, name, short_description)
+    VALUES (md5(bootstrap_id || ':Ambiente'), bootstrap_id, 'Ambiente', 'Organização do espaço e manutenção de sistemas.')
+    ON CONFLICT (user_id, name) DO NOTHING;
+  END IF;
+END $$;

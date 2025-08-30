@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './Login.css'
@@ -10,8 +10,15 @@ function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   
-  const { login, signup } = useAuth()
+  const { login, signup, user } = useAuth()
   const navigate = useNavigate()
+
+  // If already logged in, redirect to the main page
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -34,7 +41,7 @@ function Login() {
 
   return (
     <div className="login-container">
-      <div className="login-card">
+      <div className="login-card glass">
         <h1>Personal Leveling</h1>
         <p className="subtitle">Faça login ou crie sua conta para continuar</p>
         

@@ -1,0 +1,113 @@
+/* Tokens base (escopo global ao importar este CSS) */
+:root {
+  --bg-0: #070b12;
+  --bg-1: #0c1320;
+  --bg-2: #111a2c;
+  --line: rgba(255, 255, 255, 0.08);
+  --text-0: #e9f0ff;
+  --text-1: #c2cce5;
+  --text-2: #8b95b2;
+  --muted: #5a678a;
+  --pri: #009dff;
+  --pri-2: #6d5ae6;
+  --ok: #00e3a2;
+  --warn: #ff8c42;
+  --err: #ff4d5e;
+  --info: #00d1ff;
+  --radius-1: 8px;
+  --radius-2: 12px;
+  --radius-3: 20px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --space-9: 64px;
+}
+
+.glass {
+  background: rgba(17, 26, 44, 0.55);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-0);
+  color: var(--text-1);
+}
+.app-body {
+  display: flex;
+  gap: var(--space-6);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-6);
+  flex: 1;
+  width: 100%;
+}
+.app-content {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Modos para páginas especiais (ex.: login) */
+.app-body.full-bleed {
+  max-width: none;
+  padding: var(--space-6);
+}
+.app-body.centered {
+  justify-content: center;
+}
+.app-body.full-bleed.centered {
+  min-height: 100vh;
+  align-items: center;
+}
+.app-body.full-bleed .app-content {
+  max-width: none;
+  width: 100%;
+}
+
+/* Backdrop for mobile sidebar */
+.sidebar-backdrop {
+  display: none;
+}
+@media (max-width: 1024px) {
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10;
+  }
+}
+
+/* Acessibilidade */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 157, 255, 0.35);
+}
+
+@media (max-width: 1024px) {
+  .app-body {
+    padding: var(--space-6);
+  }
+}
+@media (max-width: 768px) {
+  .app-body {
+    gap: var(--space-5);
+    padding: var(--space-5);
+  }
+  .app-body.full-bleed {
+    padding: var(--space-5);
+  }
+}

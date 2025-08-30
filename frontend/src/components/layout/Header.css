@@ -1,0 +1,20 @@
+ .app-header{ position:sticky; top:0; z-index:2000; height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 var(--space-6); background:rgba(12,19,32,.6); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .header-left{ display:flex; align-items:center; gap:var(--space-6); color:var(--text-1); }
+  .brand{ display:flex; align-items:center; gap:var(--space-3); color:var(--text-0); text-decoration:none; }
+  .brand-dot{ width:12px; height:12px; border-radius:9999px; background:linear-gradient(135deg,var(--pri),var(--pri-2)); box-shadow:0 0 12px rgba(0,157,255,.5); position:relative; }
+  .brand-dot::after{ content:""; position:absolute; inset:-6px; border-radius:9999px; background:radial-gradient(ellipse at center, rgba(0,157,255,.35), transparent 60%); animation:pulse 2.4s ease-in-out infinite; }
+  .brand-logo{ width:52px; height:52px; object-fit:contain; display:block; background:transparent; filter: drop-shadow(0 0 10px rgba(0,157,255,.45)) drop-shadow(0 0 3px rgba(0,157,255,.25)); }
+  .brand-title{ font-weight:800; letter-spacing:.2px; font-size:1.15rem; background:linear-gradient(180deg, #fff, #bcd7ff 60%, #9bb8ff); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:0 1px 16px rgba(0,157,255,.08); }
+  .section-title{ color:var(--text-2); font-size:.95rem; }
+  .header-actions{ display:flex; align-items:center; gap:var(--space-3); }
+  .icon-btn{ width:36px; height:36px; border-radius:10px; background:var(--bg-2); border:1px solid var(--line); color:var(--text-1); display:flex; align-items:center; justify-content:center; line-height:1; padding:0; }
+  .icon-btn:hover{ filter:brightness(1.08); }
+  .avatar{ width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--pri),var(--pri-2)); color:#070B12; font-weight:700; border:none; display:flex; align-items:center; justify-content:center; }
+
+@keyframes pulse{ 0%,100%{ transform:scale(1); opacity:.9 } 50%{ transform:scale(1.2); opacity:.4 } }
+
+/* Menu button visibility */
+.menu-btn{ display:none; }
+@media (max-width: 1024px){
+  .menu-btn{ display:flex; }
+}

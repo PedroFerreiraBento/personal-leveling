@@ -1,0 +1,11 @@
+ .app-bg{ position:fixed; inset:0; pointer-events:none; z-index:0; }
+.bg-image{ position:absolute; inset:0; background-repeat:no-repeat; background-position:center; background-size:cover; opacity:.65; filter:saturate(.95) brightness(1) contrast(.98); }
+/* Overlay para reduzir contraste global e melhorar legibilidade */
+.bg-overlay{ position:absolute; inset:0; background:
+  radial-gradient(1200px 800px at 50% 10%, rgba(0,157,255,.04), transparent 60%),
+  linear-gradient(180deg, rgba(7,11,18,.25) 0%, rgba(12,19,32,.35) 40%, rgba(12,19,32,.45) 100%);
+ mix-blend-mode: normal;
+}
+.bg-gradient{ position:absolute; inset:0; background:radial-gradient(1200px 600px at 10% -10%, rgba(0,157,255,.12), transparent), radial-gradient(1000px 600px at 110% 10%, rgba(109,90,230,.10), transparent), linear-gradient(180deg, rgba(7,11,18,.60) 0%, rgba(12,19,32,.72) 100%); }
+.bg-radial{ position:absolute; top:20%; left:50%; width:60vw; height:60vw; transform:translateX(-50%); filter:blur(60px); background:radial-gradient(circle, rgba(0,209,255,.08), transparent 60%); }
+.bg-noise{ position:absolute; inset:0; opacity:.06; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0, rgba(255,255,255,.08) 1px, transparent 1px, transparent 2px); mix-blend-mode: overlay; }

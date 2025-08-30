@@ -1,17 +1,18 @@
 # Personal Leveling
 
-Aplicação web para gamificação de produtividade pessoal, construída com React + Node.js/Express + PostgreSQL.
+Aplicação web para gamificação de produtividade pessoal, construída com React + Node.js/Express + PostgreSQL, publicada atrás de um proxy Caddy (TLS automático com Let's Encrypt).
 
 ## 🚀 Tecnologias
 
 - **Frontend**: React 18 + Vite
 - **Backend**: Node.js + Express
 - **Database**: PostgreSQL
-- **Deploy**: Render (Free tier)
+- **Proxy/HTTPS**: Caddy 2 (TLS Let's Encrypt)
+- **Deploy**: Droplet (Docker Compose + GitHub Actions). Render permanece documentado como alternativa.
 
 ## 📁 Estrutura
 
-```
+```text
 /
 ├── frontend/          # React app (Vite)
 │   ├── src/
@@ -76,25 +77,26 @@ npm run dev:frontend
 ```
 
 Acesse:
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3001/api/health
+
+- **Frontend**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:3001/api/health](http://localhost:3001/api/health)
 
 ## 🌐 Deploy
 
 ### Droplet (Docker Compose + GitHub Actions)
 
 - Workflow: `/.github/workflows/deploy.yml`
-- Serviços: apenas `postgres` e `web` neste estágio
-- Guia completo e pré-requisitos (swap, docker/sudo, .env):
+- Serviços: `postgres`, `api`, `web`, `caddy` (Caddy publica 80/443 e faz proxy)
+- Guia completo e pré-requisitos (swap, docker/sudo, .env, DNS):
   - [`docs/features/deploy-droplet.md`](docs/features/deploy-droplet.md)
 
-### Render (Free tier)
+### Render (Free tier) — Alternativa
 
 1. **PostgreSQL Database**: Criar via Render Dashboard
 2. **Backend API**: Web Service com Node.js
 3. **Frontend**: Static Site com build do Vite
 
-Ver guia completo em: [`docs/features/deploy-render.md`](docs/features/deploy-render.md)
+Guia: [`docs/features/deploy-render.md`](docs/features/deploy-render.md)
 
 ## 📊 Funcionalidades
 
@@ -114,10 +116,11 @@ Ver guia completo em: [`docs/features/deploy-render.md`](docs/features/deploy-re
 
 ## 📚 Documentação
 
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Arquitetura (serviços, rede, env, CI/CD)
 - [`docs/IDEIA_GERAL.md`](docs/IDEIA_GERAL.md) - Visão geral do produto
 - [`docs/DIRETRIZ_DE_CODIGO.md`](docs/DIRETRIZ_DE_CODIGO.md) - Padrões de código
-- [`docs/features/deploy-render.md`](docs/features/deploy-render.md) - Guia de deploy
 - [`docs/features/deploy-droplet.md`](docs/features/deploy-droplet.md) - Deploy em Droplet (Compose + Actions)
+- [`docs/features/deploy-render.md`](docs/features/deploy-render.md) - Guia de deploy no Render (alternativa)
 
 ## 🤝 Contribuição
 

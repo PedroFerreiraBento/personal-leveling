@@ -166,10 +166,30 @@ jobs:
               exit 1
             fi
 
-            echo "[INFO] Pull/build/up…"
+            echo "[INFO] Pull/build…"
             ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml pull postgres api web caddy || true
             ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml build api web
-            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres api web caddy
+
+            echo "[INFO] Starting Postgres only…"
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres
+
+            echo "[INFO] Waiting for Postgres to be ready…"
+            # Try pg_isready inside the postgres container (has POSTGRES_* envs)
+            for i in $(seq 1 60); do
+              if ${DOCKER} compose -f docker-compose.yml exec -T postgres bash -lc "pg_isready -h 127.0.0.1 -p 5432 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""; then
+                echo "[INFO] Postgres is ready"
+                break
+              fi
+              echo "[INFO] Waiting ($i/60)…"; sleep 2
+              if [ "$i" = "60" ]; then echo "[ERROR] Postgres not ready after timeout"; exit 1; fi
+            done
+
+            echo "[INFO] Running DB migrations in api service…"
+            # Use a one-off run to ensure a clean process and proper exit code
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml run --rm api npm run migrate
+
+            echo "[INFO] Starting/Updating remaining services…"
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d api web caddy
             ${DOCKER} compose -f docker-compose.yml ps
 
             echo "[INFO] Deploy finished."

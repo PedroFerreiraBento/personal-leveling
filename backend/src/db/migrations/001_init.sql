@@ -31,13 +31,122 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Categories table
+CREATE TABLE IF NOT EXISTS categories (
+  id VARCHAR(255) PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(48) NOT NULL,
+  short_description VARCHAR(120),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_categories_user_name UNIQUE (user_id, name)
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_activities_user_timestamp ON activities(user_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_categories_user_created ON categories(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_user_updated ON tasks(user_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_user_type_status ON tasks(user_id, type, status);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
--- Add updated_at trigger for tasks
+-- Seed default categories for all existing users (idempotent)
+-- Note: IDs are generated deterministically-ish using md5; constraint avoids duplicates.
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Movimento'), u.id, 'Movimento', 'Atividades físicas e condicionamento.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Descanso'), u.id, 'Descanso', 'Sono, pausas e recuperação.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Nutrição'), u.id, 'Nutrição', 'Alimentação e hidratação.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Saúde'), u.id, 'Saúde', 'Cuidados médicos, terapias e prevenção.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Foco'), u.id, 'Foco', 'Blocos de concentração sem distrações.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Planejamento'), u.id, 'Planejamento', 'Prioridades, agenda e organização do dia.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Estudo'), u.id, 'Estudo', 'Aprendizado teórico, cursos e leituras.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Prática'), u.id, 'Prática', 'Treino técnico e exercícios aplicados.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Entrega'), u.id, 'Entrega', 'Conclusões, publicações e resultados.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Finanças'), u.id, 'Finanças', 'Ganhos, gastos, dívidas e investimentos.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Relações'), u.id, 'Relações', 'Família, amigos, networking e mentoria.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Resiliência'), u.id, 'Resiliência', 'Gestão emocional e autocuidado.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Disciplina'), u.id, 'Disciplina', 'Rotinas, hábitos e consistência.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Criatividade'), u.id, 'Criatividade', 'Ideação, design e expressão criativa.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Lazer'), u.id, 'Lazer', 'Recreação intencional e hobbies.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO categories (id, user_id, name, short_description)
+SELECT 
+  md5(u.id || ':Ambiente'), u.id, 'Ambiente', 'Organização do espaço e manutenção de sistemas.'
+FROM users u
+ON CONFLICT (user_id, name) DO NOTHING;
+
+-- Add updated_at trigger for tasks (idempotent)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -46,6 +155,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
 CREATE TRIGGER update_tasks_updated_at 
     BEFORE UPDATE ON tasks 
     FOR EACH ROW 

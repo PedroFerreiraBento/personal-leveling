@@ -208,6 +208,17 @@ jobs:
             # Use a one-off run to ensure a clean process and proper exit code
             ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml run --rm api npm run migrate
 
+            echo "[INFO] Cleaning existing api/web/caddy containers (no volumes will be removed)…"
+            # Try removing with compose first (does not touch named volumes unless -v)
+            ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml rm -f api web caddy || true
+            # Also remove by explicit container names if they linger from previous runs
+            for n in personal-api personal-web personal-caddy; do
+              if ${DOCKER} ps -a --format '{{.Names}}' | grep -wq "$n"; then
+                echo "[WARN] Removing lingering container '$n' to avoid name conflicts…"
+                ${DOCKER} rm -f "$n" || true
+              fi
+            done
+
             echo "[INFO] Starting/Updating remaining services…"
             ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d api web caddy
             ${DOCKER} compose -f docker-compose.yml ps

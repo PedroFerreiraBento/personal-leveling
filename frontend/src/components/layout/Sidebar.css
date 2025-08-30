@@ -4,6 +4,8 @@
 .nav-item .icon{ width:20px; text-align:center; opacity:.9; }
 .nav-item:hover{ background:rgba(255,255,255,.04); border-color:var(--line); }
 .nav-item.active{ border-left:2px solid var(--pri); background:rgba(0,157,255,.06); box-shadow:0 0 18px rgba(0,157,255,.18) inset; }
+/* Hidden on desktop */
+.sidebar-actions{ display:none; }
 @media (max-width: 1024px){
   /* hidden by default on mobile */
   .app-sidebar{
@@ -17,4 +19,14 @@
     padding: var(--space-7) var(--space-4);
   }
   .app-sidebar.open{ transform:translateX(0); }
+  /* Actions pinned to bottom on mobile */
+  .sidebar-actions{
+    display:flex;
+    align-items:center;
+    gap:var(--space-3);
+    position:absolute;
+    left:var(--space-4);
+    right:var(--space-4);
+    bottom:var(--space-5);
+  }
 }

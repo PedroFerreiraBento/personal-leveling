@@ -1,8 +1,17 @@
 import React from "react";
 import "./Sidebar.css";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Sidebar = ({ open = false }) => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <aside
       className={`app-sidebar ${open ? "open" : ""}`}
@@ -48,6 +57,15 @@ const Sidebar = ({ open = false }) => {
           <span className="label">Notes</span>
         </NavLink>
       </nav>
+      {/* Mobile-only actions pinned to bottom */}
+      <div className="sidebar-actions" aria-hidden={!open}>
+        <button className="icon-btn" aria-label="Pesquisar">🔍</button>
+        <button className="icon-btn" aria-label="Comandos">⌘K</button>
+        <button className="icon-btn" aria-label="Notificações">🔔</button>
+        <button className="avatar" aria-label="Sair" title="Sair" onClick={handleLogout}>
+          <span>U</span>
+        </button>
+      </div>
     </aside>
   );
 };

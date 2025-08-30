@@ -13,6 +13,29 @@
 
 @keyframes pulse{ 0%,100%{ transform:scale(1); opacity:.9 } 50%{ transform:scale(1.2); opacity:.4 } }
 
+/* User dropdown */
+.user-menu{ position: relative; }
+.user-menu-content{
+  position: absolute; right: 0; top: 100%;
+  min-width: 240px;
+  background: var(--bg-2, #111A2C);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 16px 50px rgba(0,0,0,.5);
+  border-radius: var(--radius-2, 12px);
+  padding: 10px;
+  z-index: 7000;
+  animation: fadeInUp .18s ease-out;
+}
+.user-menu-content .user-info{ color: var(--text-2); font-size: .9rem; padding: 6px 8px; }
+.user-menu-content .menu-sep{ height:1px; background: var(--line); margin: 8px 0; }
+.user-menu-content .logout-btn{
+  width: 100%; text-align: left; background: transparent; color: #FFE5E8;
+  border: 1px solid rgba(255,255,255,.12);
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+}
+.user-menu-content .logout-btn:hover{ background: rgba(255,77,94,.12); border-color: rgba(255,77,94,.35); }
+
 /* Menu button visibility */
 .menu-btn{ display:none; }
 @media (max-width: 1024px){

@@ -1,18 +1,11 @@
-import { useAuth } from '../contexts/AuthContext'
 import { Link } from 'react-router-dom'
 import './Dashboard.css'
 
 function Dashboard() {
-  const { user, logout } = useAuth()
-
   return (
     <div className="dashboard">
       <header className="dashboard-header">
         <h1>Personal Leveling</h1>
-        <div className="user-info">
-          <span>User: {user?.id}</span>
-          <button onClick={logout} className="logout-btn">Sair</button>
-        </div>
       </header>
 
       <nav className="dashboard-nav">

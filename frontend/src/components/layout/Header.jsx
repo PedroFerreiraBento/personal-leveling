@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './Header.css'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -8,6 +8,10 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [openByClick, setOpenByClick] = useState(false)
+  const menuRef = useRef(null)
+  const avatarRef = useRef(null)
 
   const pathToTitle = (path) => {
     const clean = path.replace(/\/+/g, '/').replace(/\/$/, '') || '/'
@@ -31,6 +35,35 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }) => {
     logout()
     navigate('/login')
   }
+
+  const toggleMenu = () => {
+    setMenuOpen(v => {
+      const next = !v
+      setOpenByClick(next) // if user toggled by click, lock until outside/Escape
+      return next
+    })
+  }
+
+  // Close on outside click / escape
+  useEffect(() => {
+    if (!menuOpen) return
+    const onClick = (e) => {
+      if (!menuRef.current) return
+      if (!menuRef.current.contains(e.target) && !avatarRef.current?.contains(e.target)) {
+        setMenuOpen(false)
+        setOpenByClick(false)
+      }
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setMenuOpen(false); setOpenByClick(false) }
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
 
   return (
     <header className="app-header glass" role="banner">
@@ -59,9 +92,31 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }) => {
         <button className="icon-btn" aria-label="Notificações">
           🔔
         </button>
-        <button className="avatar" aria-label="Sair" title="Sair" onClick={handleLogout}>
-          <span>U</span>
-        </button>
+        <div
+          className="user-menu"
+          ref={menuRef}
+          onMouseEnter={() => setMenuOpen(true)}
+          onMouseLeave={() => { if (!openByClick) setMenuOpen(false) }}
+        >
+          <button
+            ref={avatarRef}
+            className="avatar"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label="Abrir menu do usuário"
+            title="Conta"
+            onClick={toggleMenu}
+          >
+            <span>U</span>
+          </button>
+          {menuOpen && (
+            <div className="user-menu-content" role="menu">
+              <div className="user-info"><span>User: 99189535-ae19-4b33-8605-9f0c2dad4bec</span></div>
+              <div className="menu-sep" aria-hidden="true" />
+              <button className="logout-btn" role="menuitem" onClick={handleLogout}>Sair</button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

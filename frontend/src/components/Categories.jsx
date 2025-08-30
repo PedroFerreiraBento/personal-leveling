@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import axios from 'axios'
-import './Categories.css'
+import CrudLayout from './crud/CrudLayout'
+import CrudFilter from './crud/CrudFilter'
+import CrudCard from './crud/CrudCard'
+import CrudFormModal from './crud/CrudFormModal'
 
 function Categories() {
   const { user } = useAuth()
@@ -9,12 +12,10 @@ function Categories() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [showHelp, setShowHelp] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [filterField, setFilterField] = useState('name')
   const [filterQuery, setFilterQuery] = useState('')
-  const nameRef = useRef(null)
 
   const NAME_MAX = 48
   const DESC_MAX = 120
@@ -27,13 +28,7 @@ function Categories() {
     fetchCategories()
   }, [])
 
-  useEffect(() => {
-    if (!showCreate) return
-    const onKey = (e) => { if (e.key === 'Escape') setShowCreate(false) }
-    window.addEventListener('keydown', onKey)
-    setTimeout(() => nameRef.current && nameRef.current.focus(), 0)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [showCreate])
+  // Modal lifecycle handled inside CategoryFormModal
 
   const fetchCategories = async () => {
     try {
@@ -57,20 +52,19 @@ function Categories() {
     setShowCreate(true)
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSave = async ({ name, short_description }) => {
     try {
       if (isEditing && editingId) {
         await axios.put(`/api/categories/${editingId}`, {
           user_id: user.id,
-          name: newCategory.name.trim(),
-          short_description: (newCategory.short_description || '').trim() || null
+          name,
+          short_description,
         })
       } else {
         await axios.post('/api/categories', {
           user_id: user.id,
-          name: newCategory.name.trim(),
-          short_description: (newCategory.short_description || '').trim() || null
+          name,
+          short_description,
         })
       }
       setNewCategory({ name: '', short_description: '' })
@@ -102,127 +96,45 @@ function Categories() {
   })
 
   return (
-    <div className="categories">
-      <header className="categories-header">
-        <h1>Categorias</h1>
-        <div className="actions">
+    <CrudLayout
+      title="Categorias"
+      actions={(
+        <>
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>＋ Nova categoria</button>
-        </div>
-      </header>
-
-      <div className="filter-bar" role="search">
-        <label className="field">
-          <span className="lbl">Campo</span>
-          <select value={filterField} onChange={(e) => setFilterField(e.target.value)}>
-            <option value="name">Nome</option>
-            <option value="short_description">Descrição</option>
-          </select>
-        </label>
-        <label className="field fill">
-          <span className="lbl">Filtrar</span>
-          <input
-            type="text"
-            placeholder="Digite para filtrar..."
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <div className="categories-content">
-        {error && <div className="error">{error}</div>}
-        {filtered.length === 0 ? (
-          <p>Nenhuma categoria ainda.</p>
-        ) : (
-          <div className="categories-grid">
-            {filtered.map(cat => (
-              <div key={cat.id} className="category-card">
-                <div className="category-main">
-                  <h3>{cat.name}</h3>
-                  {cat.short_description && <p className="desc">{cat.short_description}</p>}
-                </div>
-                <div className="card-actions">
-                  <button className="btn btn-secondary btn-sm" onClick={() => openEdit(cat)}>Editar</button>
-                  <button className="delete-btn btn-sm" onClick={() => handleDelete(cat.id)}>Excluir</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {showCreate && (
-        <div className="modal-backdrop" onClick={() => setShowCreate(false)} aria-hidden="true">
-          <div className="category-modal" role="dialog" aria-modal="true" aria-label={isEditing ? 'Editar categoria' : 'Criar nova categoria'} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">
-                <h2>{isEditing ? 'Editar Categoria' : 'Nova Categoria'}</h2>
-                <span className="subtitle">Agrupe atividades e tarefas por tema</span>
-              </div>
-              <div className="header-actions">
-                <button className="btn btn-ghost help-btn" aria-label="Ajuda" onClick={() => setShowHelp(true)}>❔</button>
-                <button className="btn btn-ghost close-btn" aria-label="Fechar" onClick={() => { setShowCreate(false); setIsEditing(false); setEditingId(null); }}>✕</button>
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} className="category-form" autoComplete="off">
-              <div className="form-group">
-                <label htmlFor="name">Nome <span className="hint">até {NAME_MAX} caracteres</span></label>
-                <div className="with-counter">
-                  <input
-                    id="name"
-                    type="text"
-                    ref={nameRef}
-                    value={newCategory.name}
-                    maxLength={NAME_MAX}
-                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value.slice(0, NAME_MAX) })}
-                    placeholder="Ex: conhecimento"
-                    required
-                  />
-                  <span className={`counter ${newCategory.name.length === NAME_MAX ? 'limit' : ''}`}>{newCategory.name.length}/{NAME_MAX}</span>
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="short_description">Descrição curta <span className="hint">até {DESC_MAX} caracteres</span></label>
-                <div className="with-counter">
-                  <input
-                    id="short_description"
-                    type="text"
-                    value={newCategory.short_description}
-                    maxLength={DESC_MAX}
-                    onChange={(e) => setNewCategory({ ...newCategory, short_description: e.target.value.slice(0, DESC_MAX) })}
-                    placeholder="Opcional"
-                  />
-                  <span className={`counter ${newCategory.short_description.length === DESC_MAX ? 'limit' : ''}`}>{newCategory.short_description.length}/{DESC_MAX}</span>
-                </div>
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowCreate(false); setIsEditing(false); setEditingId(null); }}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">{isEditing ? 'Salvar' : 'Adicionar'}</button>
-              </div>
-            </form>
-
-            {showHelp && (
-              <div className="overcontent" role="dialog" aria-modal="true" aria-label="Ajuda categorias">
-                <div className="overcontent-card">
-                  <div className="overcontent-header">
-                    <h3>Como usar Categorias</h3>
-                    <button className="btn btn-ghost close-btn" aria-label="Fechar ajuda" onClick={() => setShowHelp(false)}>✕</button>
-                  </div>
-                  <div className="overcontent-body">
-                    <p>Use categorias para organizar atividades e tarefas por temas. Exemplos: "conhecimento", "saúde", "finanças".</p>
-                    <ul>
-                      <li>Nome curto e direto (máx. {NAME_MAX}).</li>
-                      <li>Descrição curta opcional (máx. {DESC_MAX}) para lembrar a finalidade.</li>
-                      <li>Você pode editar ou excluir depois.</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <a href="/dashboard" className="back-link">← Voltar</a>
+        </>
+      )}
+      filter={(
+        <CrudFilter
+          field={filterField}
+          query={filterQuery}
+          onChangeField={setFilterField}
+          onChangeQuery={setFilterQuery}
+        />
+      )}
+    >
+      {error && <div className="error">{error}</div>}
+      {filtered.length === 0 ? (
+        <p>Nenhuma categoria ainda.</p>
+      ) : (
+        <div className="crud-grid">
+          {filtered.map(cat => (
+            <CrudCard key={cat.id} item={cat} onEdit={openEdit} onDelete={handleDelete} />
+          ))}
         </div>
       )}
-    </div>
+
+      <CrudFormModal
+        open={showCreate}
+        title={isEditing ? 'Editar Categoria' : 'Nova Categoria'}
+        subtitle="Agrupe atividades e tarefas por tema"
+        nameMax={NAME_MAX}
+        descMax={DESC_MAX}
+        initial={newCategory}
+        onSubmit={handleSave}
+        onClose={() => { setShowCreate(false); setIsEditing(false); setEditingId(null); }}
+      />
+    </CrudLayout>
   )
 }
 

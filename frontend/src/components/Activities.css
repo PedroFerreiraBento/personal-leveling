@@ -15,7 +15,7 @@
   color: #9aa6c2;
   text-decoration: none;
 }
-.back-link:hover { text-decoration: underline; }
+.back-link:hover { text-decoration: none; }
 
 .activities-content { display: block; }
 

@@ -156,16 +156,22 @@ jobs:
               exit 1
             fi
 
-            # Se quiser usar .env, deixe o arquivo no repo/remoto. Apenas avisa se existir.
+            # Seleciona arquivo de env: prefere .env.production; fallback .env
             COMPOSE_ENV_ARG=""
-            if [ -f .env ]; then
-              echo "[INFO] .env encontrado (variáveis não serão expostas)."
+            if [ -f .env.production ]; then
+              echo "[INFO] Usando .env.production para docker compose (--env-file)"
+              sed -i 's/\r$//' .env.production || true
+              COMPOSE_ENV_ARG="--env-file .env.production"
+              echo "[INFO] Chaves presentes em .env.production:"
+              sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/  - \1/p' .env.production | sort | uniq | sed 's/^/    /'
+            elif [ -f .env ]; then
+              echo "[INFO] Usando .env para docker compose (--env-file)"
               sed -i 's/\r$//' .env || true
               COMPOSE_ENV_ARG="--env-file .env"
               echo "[INFO] Chaves presentes em .env:"
               sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/  - \1/p' .env | sort | uniq | sed 's/^/    /'
             else
-              echo "[WARN] .env ausente; composição dependerá do ambiente do shell."
+              echo "[WARN] Nenhum arquivo .env(.production) encontrado; compose dependerá do ambiente do shell."
             fi
 
             echo "[INFO] Validando com interpolação (se .env existir)…"
@@ -188,9 +194,9 @@ jobs:
             ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres
 
             echo "[INFO] Waiting for Postgres to be ready…"
-            # Try pg_isready inside the postgres container (has POSTGRES_* envs)
+            # Readiness: check if server accepts connections (no env var expansion needed)
             for i in $(seq 1 60); do
-              if ${DOCKER} compose -f docker-compose.yml exec -T postgres bash -lc "pg_isready -h 127.0.0.1 -p 5432 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""; then
+              if ${DOCKER} compose -f docker-compose.yml exec -T postgres bash -lc 'pg_isready -h 127.0.0.1 -p 5432 -q'; then
                 echo "[INFO] Postgres is ready"
                 break
               fi

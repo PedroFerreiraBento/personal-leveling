@@ -180,6 +180,11 @@ jobs:
             ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml build api web
 
             echo "[INFO] Starting Postgres only…"
+            # Resolve potential name conflict from a previous container not managed by current compose project
+            if ${DOCKER} ps -a --format '{{.Names}}' | grep -wq personal-postgres; then
+              echo "[WARN] Found existing container named 'personal-postgres'. Removing to avoid conflict…"
+              ${DOCKER} rm -f personal-postgres || true
+            fi
             ${DOCKER} compose $COMPOSE_ENV_ARG -f docker-compose.yml up -d postgres
 
             echo "[INFO] Waiting for Postgres to be ready…"

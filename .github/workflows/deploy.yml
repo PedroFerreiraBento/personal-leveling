@@ -221,8 +221,8 @@ jobs:
             fi
 
             # Only proceed if APP_ADMIN_EMAIL and APP_ADMIN_PASSWORD are set
-            if [ -n "${APP_ADMIN_EMAIL:-}" ] && [ -n "${APP_ADMIN_PASSWORD:-}" ]; then
-              BOOTSTRAP_COUNT=$(${DOCKER} compose -f docker-compose.yml exec -T postgres bash -lc 'psql -U "$PGUSER" -d "$PGDATABASE" -tAc "SELECT COUNT(*) FROM users WHERE id = md5(''bootstrap_user_v1'') OR email = ''bootstrap@local'';"' | tr -d '\r')
+            if [ -n "${APP_ADMIN_EMAIL:-}" ] && [ -n "${APP_ADMIN_PASSWORD:-}" ] && [ -n "${PGUSER:-}" ] && [ -n "${PGDATABASE:-}" ]; then
+              BOOTSTRAP_COUNT=$(${DOCKER} compose -f docker-compose.yml exec -T postgres bash -lc "psql -U '${PGUSER:-postgres}' -d '${PGDATABASE:-postgres}' -tAc 'SELECT COUNT(*) FROM users WHERE id = md5(''bootstrap_user_v1'') OR email = ''bootstrap@local'';'" | tr -d '\r')
               echo "[INFO] bootstrap user present: ${BOOTSTRAP_COUNT}"
               if [ "${BOOTSTRAP_COUNT}" != "0" ]; then
                 echo "[INFO] Updating bootstrap user to configured admin credentials"
@@ -231,14 +231,14 @@ jobs:
                 ADMIN_EMAIL_LC=$(printf '%s' "$APP_ADMIN_EMAIL" | tr '[:upper:]' '[:lower:]')
                 ADMIN_HASH=$(printf '%s' "$APP_ADMIN_PASSWORD" | base64 | tr -d '\n')
                 # Use psql -v variables to avoid complex shell quoting
-                ${DOCKER} compose -f docker-compose.yml exec -T postgres bash -lc 'psql -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -v new_email='"'"$ADMIN_EMAIL_LC"'"' -v new_hash='"'"$ADMIN_HASH"'"' -c "UPDATE users SET email = :'new_email', password_hash = :'new_hash' WHERE id = md5(''bootstrap_user_v1'') OR email = ''bootstrap@local'';"'
+                ${DOCKER} compose -f docker-compose.yml exec -T postgres bash -lc "psql -U \"${PGUSER}\" -d \"${PGDATABASE}\" -v ON_ERROR_STOP=1 -v new_email=\"$ADMIN_EMAIL_LC\" -v new_hash=\"$ADMIN_HASH\" -c 'UPDATE users SET email = :new_email, password_hash = :new_hash WHERE id = md5(''bootstrap_user_v1'') OR email = ''bootstrap@local'';'"
                 # Re-enable xtrace after sensitive section
                 set -x
               else
                 echo "[INFO] No bootstrap user found; skipping admin update"
               fi
             else
-              echo "[WARN] APP_ADMIN_EMAIL/APP_ADMIN_PASSWORD not set; skipping admin bootstrap"
+              echo "[WARN] APP_ADMIN_EMAIL/APP_ADMIN_PASSWORD/PGUSER/PGDATABASE not set; skipping admin bootstrap"
             fi
 
             echo "[INFO] Cleaning existing api/web/caddy containers (no volumes will be removed)…"

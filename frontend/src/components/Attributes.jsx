@@ -111,16 +111,19 @@ function Attributes() {
         <p>Nenhum atributo ainda.</p>
       ) : (
         <div className="crud-grid">
-          {filtered.map(item => (
-            <CrudCard
-              key={item.id}
-              item={item}
-              title={item.name}
-              description={item.description}
-              onEdit={openEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+          {filtered.map(item => {
+            const isOwner = item.user_id === user.id
+            return (
+              <CrudCard
+                key={item.id}
+                item={item}
+                title={item.name}
+                description={item.description}
+                onEdit={isOwner ? openEdit : undefined}
+                onDelete={isOwner ? handleDelete : undefined}
+              />
+            )
+          })}
         </div>
       )}
 

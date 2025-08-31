@@ -36,103 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_user_updated ON tasks(user_id, updated_at D
 CREATE INDEX IF NOT EXISTS idx_tasks_user_type_status ON tasks(user_id, type, status);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
--- Seed default categories for all existing users (idempotent)
--- Note: IDs are generated deterministically-ish using md5; constraint avoids duplicates.
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Movimento'), u.id, 'Movimento', 'Atividades físicas e condicionamento.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Descanso'), u.id, 'Descanso', 'Sono, pausas e recuperação.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Nutrição'), u.id, 'Nutrição', 'Alimentação e hidratação.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Saúde'), u.id, 'Saúde', 'Cuidados médicos, terapias e prevenção.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Foco'), u.id, 'Foco', 'Blocos de concentração sem distrações.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Planejamento'), u.id, 'Planejamento', 'Prioridades, agenda e organização do dia.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Estudo'), u.id, 'Estudo', 'Aprendizado teórico, cursos e leituras.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Prática'), u.id, 'Prática', 'Treino técnico e exercícios aplicados.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Entrega'), u.id, 'Entrega', 'Conclusões, publicações e resultados.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Finanças'), u.id, 'Finanças', 'Ganhos, gastos, dívidas e investimentos.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Relações'), u.id, 'Relações', 'Família, amigos, networking e mentoria.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Resiliência'), u.id, 'Resiliência', 'Gestão emocional e autocuidado.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Disciplina'), u.id, 'Disciplina', 'Rotinas, hábitos e consistência.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Criatividade'), u.id, 'Criatividade', 'Ideação, design e expressão criativa.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Lazer'), u.id, 'Lazer', 'Recreação intencional e hobbies.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
-
-INSERT INTO categories (id, user_id, name, short_description)
-SELECT 
-  md5(u.id || ':Ambiente'), u.id, 'Ambiente', 'Organização do espaço e manutenção de sistemas.'
-FROM users u
-ON CONFLICT (user_id, name) DO NOTHING;
+-- Seeding for default data will be handled only for the bootstrap user below.
 
 -- Add updated_at trigger for tasks (idempotent)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -155,8 +59,9 @@ DECLARE
   bootstrap_id text := md5('bootstrap_user_v1');
 BEGIN
   -- Create placeholder user
+  -- Password for development: 'adminpassword'
   INSERT INTO users (id, email, password_hash, created_at)
-  VALUES (bootstrap_id, 'bootstrap@local', 'YWRtaW4=', CURRENT_TIMESTAMP) -- 'admin' base64 for bootstrap
+  VALUES (bootstrap_id, 'bootstrap@local', 'YWRtaW5wYXNzd29yZA==', CURRENT_TIMESTAMP)
   ON CONFLICT (id) DO UPDATE SET
     id = bootstrap_id,
     email = EXCLUDED.email,

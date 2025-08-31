@@ -80,7 +80,7 @@ function Notes() {
 
   return (
     <CrudLayout
-      title="Notas (demo)"
+      title="Anotações"
       actions={(
         <button className="btn btn-primary" onClick={openCreate}>+ Nova</button>
       )}

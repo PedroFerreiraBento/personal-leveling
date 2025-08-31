@@ -4,7 +4,7 @@ const db = require('../db/connection');
 
 const router = express.Router();
 
-// GET /api/attributes - List attributes by user
+// GET /api/attributes - List attributes by user, including bootstrap user's shared records
 router.get('/', async (req, res) => {
   try {
     const { user_id } = req.query;
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     const result = await db.query(
       `SELECT id, user_id, name, description, created_at
        FROM attributes
-       WHERE user_id = $1
+       WHERE user_id = $1 OR ($1 <> md5('bootstrap_user_v1') AND user_id = md5('bootstrap_user_v1'))
        ORDER BY name ASC`,
       [user_id]
     );

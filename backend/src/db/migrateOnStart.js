@@ -13,8 +13,20 @@ async function migrateOnStart() {
     for (const file of files) {
       const full = path.join(dir, file)
       const sql = fs.readFileSync(full, 'utf8')
-      await db.query(sql)
-      console.log(`✅ Ran migration: ${file}`)
+      try {
+        await db.query(sql)
+        console.log(`✅ Ran migration: ${file}`)
+      } catch (err) {
+        console.error(`❌ Migration failed in file: ${file}`)
+        if (err && err.position) {
+          const pos = Number(err.position)
+          const start = Math.max(0, pos - 80)
+          const end = Math.min(sql.length, pos + 80)
+          console.error('Context around error position:')
+          console.error(sql.slice(start, end))
+        }
+        throw err
+      }
     }
 
     console.log('✅ DB ready (all migrations applied)')

@@ -14,7 +14,9 @@ import Activities from "./components/Activities";
 import Categories from "./components/Categories";
 import Tasks from "./components/Tasks";
 import Notes from "./components/Notes";
+import Lancamentos from "./components/Lancamentos";
 import Attributes from "./components/Attributes";
+import Profile from "./components/Profile";
 import { Layout } from "./components/layout";
 
 // Context
@@ -52,9 +54,11 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/activities" element={<Activities />} />
               <Route path="/attributes" element={<Attributes />} />
+              <Route path="/lancamentos" element={<Lancamentos />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             {/* Catch-all: redirect unknown paths to main page */}

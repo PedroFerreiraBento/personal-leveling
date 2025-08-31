@@ -118,9 +118,17 @@ function Categories() {
         <p>Nenhuma categoria ainda.</p>
       ) : (
         <div className="crud-grid">
-          {filtered.map(cat => (
-            <CrudCard key={cat.id} item={cat} onEdit={openEdit} onDelete={handleDelete} />
-          ))}
+          {filtered.map(cat => {
+            const isOwner = cat.user_id === user.id
+            return (
+              <CrudCard
+                key={cat.id}
+                item={cat}
+                onEdit={isOwner ? openEdit : undefined}
+                onDelete={isOwner ? handleDelete : undefined}
+              />
+            )
+          })}
         </div>
       )}
 

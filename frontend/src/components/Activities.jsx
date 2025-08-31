@@ -289,16 +289,19 @@ function Activities() {
         <p>Nenhuma atividade registrada ainda.</p>
       ) : (
         <div className="crud-grid">
-          {filtered.map(activity => (
-            <CrudCard
-              key={activity.id}
-              item={activity}
-              title={activity.title}
-              description={activity.short_description || ''}
-              onEdit={openEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+          {filtered.map(activity => {
+            const isOwner = activity.user_id === user.id
+            return (
+              <CrudCard
+                key={activity.id}
+                item={activity}
+                title={activity.title}
+                description={activity.short_description || ''}
+                onEdit={isOwner ? openEdit : undefined}
+                onDelete={isOwner ? handleDelete : undefined}
+              />
+            )
+          })}
         </div>
       )}
 

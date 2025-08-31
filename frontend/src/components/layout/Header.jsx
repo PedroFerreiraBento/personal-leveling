@@ -20,6 +20,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }) => {
       '/dashboard': 'Dashboard',
       '/activities': 'Atividades',
       '/tasks': 'Tarefas',
+      '/profile': 'Perfil',
       '/login': 'Login',
       '/register': 'Criar conta'
     }
@@ -34,6 +35,12 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }) => {
   const handleLogout = () => {
     logout()
     navigate('/login')
+  }
+
+  const goProfile = () => {
+    navigate('/profile')
+    setMenuOpen(false)
+    setOpenByClick(false)
   }
 
   const toggleMenu = () => {
@@ -112,6 +119,8 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }) => {
           {menuOpen && (
             <div className="user-menu-content" role="menu">
               <div className="user-info"><span>User: 99189535-ae19-4b33-8605-9f0c2dad4bec</span></div>
+              <div className="menu-sep" aria-hidden="true" />
+              <button className="profile-btn" role="menuitem" onClick={goProfile}>Perfil</button>
               <div className="menu-sep" aria-hidden="true" />
               <button className="logout-btn" role="menuitem" onClick={handleLogout}>Sair</button>
             </div>

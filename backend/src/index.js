@@ -42,6 +42,7 @@ app.use("/api/tasks", require("./routes/tasks"));
 app.use("/api/notes", require("./routes/notes"));
 app.use("/api/categories", require("./routes/categories"));
 app.use("/api/attributes", require("./routes/attributes"));
+app.use("/api/lancamentos", require("./routes/lancamentos"));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

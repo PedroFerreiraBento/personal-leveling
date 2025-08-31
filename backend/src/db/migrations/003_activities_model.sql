@@ -97,244 +97,216 @@ CREATE TABLE IF NOT EXISTS activity_scoring_formula (
 
 -- 7) Optional views or helpers can be added later for reporting
 
--- 8) Seed: example Activities per user (idempotent)
+
+-- 8) Seed: example Activities only for the bootstrap user (idempotent)
 -- Uses deterministic IDs with md5(user_id || ':' || title)
--- Categories and Attributes are the ones seeded in 001_init.sql and 002_attributes.sql
+DO $$
+DECLARE
+  bootstrap_id text := md5('bootstrap_user_v1');
+BEGIN
+  -- Activity 1: Corrida
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Corrida'), bootstrap_id, 'Corrida', 'Corrida ao ar livre ou esteira', md5(bootstrap_id || ':Movimento'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
 
--- Helper comments: category ids
--- Movimento        -> md5(u.id || ':Movimento')
--- Descanso         -> md5(u.id || ':Descanso')
--- Foco             -> md5(u.id || ':Foco')
--- Estudo           -> md5(u.id || ':Estudo')
--- Prática          -> md5(u.id || ':Prática')
--- Entrega          -> md5(u.id || ':Entrega')
--- Finanças         -> md5(u.id || ':Finanças')
--- Relações         -> md5(u.id || ':Relações')
--- Lazer            -> md5(u.id || ':Lazer')
+  -- Measures
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Corrida:distance'), md5(bootstrap_id || ':Corrida'), 'distance', 'Distância', 'km', 2)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Corrida:time'), md5(bootstrap_id || ':Corrida'), 'time', 'Tempo', 'min', 0)
+  ON CONFLICT DO NOTHING;
 
--- Helper comments: attribute ids
--- Vitalidade       -> md5(u.id || ':Vitalidade')
--- Clareza          -> md5(u.id || ':Clareza')
--- Conhecimento     -> md5(u.id || ':Conhecimento')
--- Habilidade       -> md5(u.id || ':Habilidade')
--- Entrega (attr)   -> md5(u.id || ':Entrega')
--- Finanças (attr)  -> md5(u.id || ':Finanças')
--- Relações (attr)  -> md5(u.id || ':Relações')
--- Resiliência      -> md5(u.id || ':Resiliência')
--- Disciplina       -> md5(u.id || ':Disciplina')
+  -- Scoring (linear: 1*distance + 0.05*time)
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Corrida'), 'linear', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_linear_terms (id, activity_id, measure_ref, points_per_unit, cap_units)
+  VALUES (md5(bootstrap_id || ':Corrida:term:distance'), md5(bootstrap_id || ':Corrida'), 'distance', 1.0, NULL)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring_linear_terms (id, activity_id, measure_ref, points_per_unit, cap_units)
+  VALUES (md5(bootstrap_id || ':Corrida:term:time'), md5(bootstrap_id || ':Corrida'), 'time', 0.05, NULL)
+  ON CONFLICT DO NOTHING;
 
--- Activity 1: Corrida
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Corrida'), u.id, 'Corrida', 'Corrida ao ar livre ou esteira', md5(u.id || ':Movimento'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
+  -- Attribute distribution (percent)
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Corrida:Vitalidade'), md5(bootstrap_id || ':Corrida'), md5(bootstrap_id || ':Vitalidade'), 70, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Corrida:Disciplina'), md5(bootstrap_id || ':Corrida'), md5(bootstrap_id || ':Disciplina'), 30, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Measures
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Corrida:distance'), md5(u.id || ':Corrida'), 'distance', 'Distância', 'km', 2 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Corrida:time'), md5(u.id || ':Corrida'), 'time', 'Tempo', 'min', 0 FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 2: Caminhada
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Caminhada'), bootstrap_id, 'Caminhada', 'Passos/quilometragem leve', md5(bootstrap_id || ':Movimento'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Caminhada:distance'), md5(bootstrap_id || ':Caminhada'), 'distance', 'Distância', 'km', 2)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Caminhada'), 'simple', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Caminhada'), 'distance', 0.6)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Caminhada:Vitalidade'), md5(bootstrap_id || ':Caminhada'), md5(bootstrap_id || ':Vitalidade'), 60, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Caminhada:Resiliencia'), md5(bootstrap_id || ':Caminhada'), md5(bootstrap_id || ':Resiliência'), 40, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Scoring (linear: 1*distance + 0.05*time)
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Corrida'), 'linear', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_linear_terms (id, activity_id, measure_ref, points_per_unit, cap_units)
-SELECT md5(u.id || ':Corrida:term:distance'), md5(u.id || ':Corrida'), 'distance', 1.0, NULL FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring_linear_terms (id, activity_id, measure_ref, points_per_unit, cap_units)
-SELECT md5(u.id || ':Corrida:term:time'), md5(u.id || ':Corrida'), 'time', 0.05, NULL FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 3: Foco Profundo
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Foco Profundo'), bootstrap_id, 'Foco Profundo', 'Sessão de concentração sem distrações', md5(bootstrap_id || ':Foco'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Foco Profundo:minutes'), md5(bootstrap_id || ':Foco Profundo'), 'minutes', 'Minutos', 'min', 0)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Foco Profundo'), 'simple', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Foco Profundo'), 'minutes', 0.02)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Foco Profundo:Clareza'), md5(bootstrap_id || ':Foco Profundo'), md5(bootstrap_id || ':Clareza'), 70, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Foco Profundo:Disciplina'), md5(bootstrap_id || ':Foco Profundo'), md5(bootstrap_id || ':Disciplina'), 30, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Attribute distribution (percent)
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Corrida:Vitalidade'), md5(u.id || ':Corrida'), md5(u.id || ':Vitalidade'), 70, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Corrida:Disciplina'), md5(u.id || ':Corrida'), md5(u.id || ':Disciplina'), 30, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 4: Meditação
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Meditação'), bootstrap_id, 'Meditação', 'Respiração/atenção plena', md5(bootstrap_id || ':Descanso'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Meditação:minutes'), md5(bootstrap_id || ':Meditação'), 'minutes', 'Minutos', 'min', 0)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Meditação'), 'simple', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Meditação'), 'minutes', 0.03)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Meditação:Resiliencia'), md5(bootstrap_id || ':Meditação'), md5(bootstrap_id || ':Resiliência'), 60, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Meditação:Clareza'), md5(bootstrap_id || ':Meditação'), md5(bootstrap_id || ':Clareza'), 40, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Activity 2: Caminhada
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Caminhada'), u.id, 'Caminhada', 'Passos/quilometragem leve', md5(u.id || ':Movimento'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Caminhada:distance'), md5(u.id || ':Caminhada'), 'distance', 'Distância', 'km', 2 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Caminhada'), 'simple', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Caminhada'), 'distance', 0.6 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Caminhada:Vitalidade'), md5(u.id || ':Caminhada'), md5(u.id || ':Vitalidade'), 60, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Caminhada:Resiliencia'), md5(u.id || ':Caminhada'), md5(u.id || ':Resiliência'), 40, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 5: Leitura Técnica
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Leitura Técnica'), bootstrap_id, 'Leitura Técnica', 'Estudos e leituras estruturadas', md5(bootstrap_id || ':Estudo'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Leitura Técnica:pages'), md5(bootstrap_id || ':Leitura Técnica'), 'pages', 'Páginas', 'pg', 0)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Leitura Técnica'), 'simple', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Leitura Técnica'), 'pages', 0.2)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Leitura Técnica:Conhecimento'), md5(bootstrap_id || ':Leitura Técnica'), md5(bootstrap_id || ':Conhecimento'), 80, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Leitura Técnica:Clareza'), md5(bootstrap_id || ':Leitura Técnica'), md5(bootstrap_id || ':Clareza'), 20, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Activity 3: Foco Profundo
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Foco Profundo'), u.id, 'Foco Profundo', 'Sessão de concentração sem distrações', md5(u.id || ':Foco'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Foco Profundo:minutes'), md5(u.id || ':Foco Profundo'), 'minutes', 'Minutos', 'min', 0 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Foco Profundo'), 'simple', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Foco Profundo'), 'minutes', 0.02 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Foco Profundo:Clareza'), md5(u.id || ':Foco Profundo'), md5(u.id || ':Clareza'), 70, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Foco Profundo:Disciplina'), md5(u.id || ':Foco Profundo'), md5(u.id || ':Disciplina'), 30, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 6: Projeto Prático
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Projeto Prático'), bootstrap_id, 'Projeto Prático', 'Execução prática/protótipos', md5(bootstrap_id || ':Prática'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Projeto Prático:sessions'), md5(bootstrap_id || ':Projeto Prático'), 'sessions', 'Sessões', 'x', 0)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Projeto Prático'), 'simple', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Projeto Prático'), 'sessions', 2.0)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Projeto Prático:Habilidade'), md5(bootstrap_id || ':Projeto Prático'), md5(bootstrap_id || ':Habilidade'), 70, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Projeto Prático:Entrega'), md5(bootstrap_id || ':Projeto Prático'), md5(bootstrap_id || ':Entrega'), 30, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Activity 4: Meditação
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Meditação'), u.id, 'Meditação', 'Respiração/atenção plena', md5(u.id || ':Descanso'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Meditação:minutes'), md5(u.id || ':Meditação'), 'minutes', 'Minutos', 'min', 0 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Meditação'), 'simple', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Meditação'), 'minutes', 0.03 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Meditação:Resiliencia'), md5(u.id || ':Meditação'), md5(u.id || ':Resiliência'), 60, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Meditação:Clareza'), md5(u.id || ':Meditação'), md5(u.id || ':Clareza'), 40, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 7: Publicar Artigo
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Publicar Artigo'), bootstrap_id, 'Publicar Artigo', 'Post/artigo publicado', md5(bootstrap_id || ':Entrega'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Publicar Artigo:items'), md5(bootstrap_id || ':Publicar Artigo'), 'items', 'Itens', 'x', 0)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Publicar Artigo'), 'simple', 'none', 0, TRUE, 2.0)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Publicar Artigo'), 'items', 5.0)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Publicar Artigo:Entrega'), md5(bootstrap_id || ':Publicar Artigo'), md5(bootstrap_id || ':Entrega'), 70, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Publicar Artigo:Conhecimento'), md5(bootstrap_id || ':Publicar Artigo'), md5(bootstrap_id || ':Conhecimento'), 30, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Activity 5: Leitura Técnica
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Leitura Técnica'), u.id, 'Leitura Técnica', 'Estudos e leituras estruturadas', md5(u.id || ':Estudo'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Leitura Técnica:pages'), md5(u.id || ':Leitura Técnica'), 'pages', 'Páginas', 'pg', 0 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Leitura Técnica'), 'simple', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Leitura Técnica'), 'pages', 0.2 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Leitura Técnica:Conhecimento'), md5(u.id || ':Leitura Técnica'), md5(u.id || ':Conhecimento'), 80, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Leitura Técnica:Clareza'), md5(u.id || ':Leitura Técnica'), md5(u.id || ':Clareza'), 20, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 8: Poupança Mensal
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Poupança Mensal'), bootstrap_id, 'Poupança Mensal', 'Aporte em poupança/investimento', md5(bootstrap_id || ':Finanças'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Poupança Mensal:amount'), md5(bootstrap_id || ':Poupança Mensal'), 'amount', 'Valor', 'BRL', 2)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Poupança Mensal'), 'simple', 'nearest', 2, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Poupança Mensal'), 'amount', 0.001)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Poupança Mensal:Finanças'), md5(bootstrap_id || ':Poupança Mensal'), md5(bootstrap_id || ':Finanças'), 100, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Activity 6: Projeto Prático
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Projeto Prático'), u.id, 'Projeto Prático', 'Execução prática/protótipos', md5(u.id || ':Prática'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Projeto Prático:sessions'), md5(u.id || ':Projeto Prático'), 'sessions', 'Sessões', 'x', 0 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Projeto Prático'), 'simple', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Projeto Prático'), 'sessions', 2.0 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Projeto Prático:Habilidade'), md5(u.id || ':Projeto Prático'), md5(u.id || ':Habilidade'), 70, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Projeto Prático:Entrega'), md5(u.id || ':Projeto Prático'), md5(u.id || ':Entrega'), 30, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 9: Encontro Significativo
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Encontro Significativo'), bootstrap_id, 'Encontro Significativo', 'Tempo de qualidade com pessoas importantes', md5(bootstrap_id || ':Relações'), 'positive')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Encontro Significativo:sessions'), md5(bootstrap_id || ':Encontro Significativo'), 'sessions', 'Sessões', 'x', 0)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Encontro Significativo'), 'simple', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Encontro Significativo'), 'sessions', 1.0)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Encontro Significativo:Relacoes'), md5(bootstrap_id || ':Encontro Significativo'), md5(bootstrap_id || ':Relações'), 100, 'positive', 'percent')
+  ON CONFLICT DO NOTHING;
 
--- Activity 7: Publicar Artigo
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Publicar Artigo'), u.id, 'Publicar Artigo', 'Post/artigo publicado', md5(u.id || ':Entrega'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Publicar Artigo:items'), md5(u.id || ':Publicar Artigo'), 'items', 'Itens', 'x', 0 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Publicar Artigo'), 'simple', 'none', 0, TRUE, 2.0 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Publicar Artigo'), 'items', 5.0 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Publicar Artigo:Entrega'), md5(u.id || ':Publicar Artigo'), md5(u.id || ':Entrega'), 70, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Publicar Artigo:Conhecimento'), md5(u.id || ':Publicar Artigo'), md5(u.id || ':Conhecimento'), 30, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-
--- Activity 8: Poupança Mensal
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Poupança Mensal'), u.id, 'Poupança Mensal', 'Aporte em poupança/investimento', md5(u.id || ':Finanças'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Poupança Mensal:amount'), md5(u.id || ':Poupança Mensal'), 'amount', 'Valor', 'BRL', 2 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Poupança Mensal'), 'simple', 'nearest', 2, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Poupança Mensal'), 'amount', 0.001 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Poupança Mensal:Finanças'), md5(u.id || ':Poupança Mensal'), md5(u.id || ':Finanças'), 100, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-
--- Activity 9: Encontro Significativo
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Encontro Significativo'), u.id, 'Encontro Significativo', 'Tempo de qualidade com pessoas importantes', md5(u.id || ':Relações'), 'positive'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Encontro Significativo:sessions'), md5(u.id || ':Encontro Significativo'), 'sessions', 'Sessões', 'x', 0 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Encontro Significativo'), 'simple', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Encontro Significativo'), 'sessions', 1.0 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Encontro Significativo:Relacoes'), md5(u.id || ':Encontro Significativo'), md5(u.id || ':Relações'), 100, 'positive', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-
--- Activity 10: Scroll Madrugada (negativa)
-INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
-SELECT md5(u.id || ':Scroll Madrugada'), u.id, 'Scroll Madrugada', 'Uso improdutivo de redes à noite', md5(u.id || ':Lazer'), 'negative'
-FROM users u
-ON CONFLICT (user_id, title) DO NOTHING;
-INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
-SELECT md5(u.id || ':Scroll Madrugada:sessions'), md5(u.id || ':Scroll Madrugada'), 'sessions', 'Sessões', 'x', 0 FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
-SELECT md5(u.id || ':Scroll Madrugada'), 'simple', 'none', 0, TRUE, NULL FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
-SELECT md5(u.id || ':Scroll Madrugada'), 'sessions', -1.0 FROM users u
-ON CONFLICT (activity_id) DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Scroll Madrugada:Disciplina'), md5(u.id || ':Scroll Madrugada'), md5(u.id || ':Disciplina'), 60, 'negative', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
-INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
-SELECT md5(u.id || ':Scroll Madrugada:Clareza'), md5(u.id || ':Scroll Madrugada'), md5(u.id || ':Clareza'), 40, 'negative', 'percent' FROM users u
-ON CONFLICT DO NOTHING;
+  -- Activity 10: Scroll Madrugada (negativa)
+  INSERT INTO activities (id, user_id, title, short_description, category_id, polarity)
+  VALUES (md5(bootstrap_id || ':Scroll Madrugada'), bootstrap_id, 'Scroll Madrugada', 'Uso improdutivo de redes à noite', md5(bootstrap_id || ':Lazer'), 'negative')
+  ON CONFLICT (user_id, title) DO NOTHING;
+  INSERT INTO activity_measures (id, activity_id, key, label, unit, decimals)
+  VALUES (md5(bootstrap_id || ':Scroll Madrugada:sessions'), md5(bootstrap_id || ':Scroll Madrugada'), 'sessions', 'Sessões', 'x', 0)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_scoring (activity_id, mode, rounding, precision, allow_negative, base_points)
+  VALUES (md5(bootstrap_id || ':Scroll Madrugada'), 'simple', 'none', 0, TRUE, NULL)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_scoring_simple (activity_id, measure_ref, points_per_unit)
+  VALUES (md5(bootstrap_id || ':Scroll Madrugada'), 'sessions', -1.0)
+  ON CONFLICT (activity_id) DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Scroll Madrugada:Disciplina'), md5(bootstrap_id || ':Scroll Madrugada'), md5(bootstrap_id || ':Disciplina'), 60, 'negative', 'percent')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO activity_attribute_entries (id, activity_id, attribute_id, value, polarity, model)
+  VALUES (md5(bootstrap_id || ':Scroll Madrugada:Clareza'), md5(bootstrap_id || ':Scroll Madrugada'), md5(bootstrap_id || ':Clareza'), 40, 'negative', 'percent')
+  ON CONFLICT DO NOTHING;
+END $$;

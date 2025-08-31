@@ -17,22 +17,47 @@
 .user-menu{ position: relative; }
 .user-menu-content{
   position: absolute; right: 0; top: 100%;
-  min-width: 240px;
-  background: var(--bg-2, #111A2C);
+  min-width: 260px;
+  background: linear-gradient(180deg, rgba(17,26,44,.96), rgba(13,20,34,.96));
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,.06);
-  box-shadow: 0 16px 50px rgba(0,0,0,.5);
-  border-radius: var(--radius-2, 12px);
-  padding: 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,.55);
+  border-radius: 14px;
+  padding: 12px;
   z-index: 7000;
   animation: fadeInUp .18s ease-out;
 }
-.user-menu-content .user-info{ color: var(--text-2); font-size: .9rem; padding: 6px 8px; }
-.user-menu-content .menu-sep{ height:1px; background: var(--line); margin: 8px 0; }
-.user-menu-content .logout-btn{
-  width: 100%; text-align: left; background: transparent; color: #FFE5E8;
+.user-menu-content:focus-within{ outline: 2px solid rgba(0,157,255,.35); outline-offset: 2px; }
+.user-menu-content .user-info{ color: var(--text-2); font-size: .9rem; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-menu-content .menu-sep{ height:1px; background: var(--line); margin: 10px 0; opacity:.8; }
+
+/* Base button style inside menu */
+.user-menu-content button{ 
+  width: 100%; 
+  text-align: left; 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 10px; 
+  padding: 11px 12px; 
+  border-radius: 10px; 
+  cursor: pointer; 
+  transition: background .15s ease, border-color .15s ease, transform .04s ease; 
   border: 1px solid rgba(255,255,255,.12);
-  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+}
+.user-menu-content button:active{ transform: translateY(1px); }
+
+/* Profile primary action */
+.user-menu-content .profile-btn{
+  background: linear-gradient(135deg, var(--pri,#2F6BFF), var(--pri-2,#7BA6FF));
+  color: #081224;
+  font-weight: 700;
+  border-color: rgba(123,166,255,.55);
+}
+.user-menu-content .profile-btn:hover{ filter: brightness(1.06); }
+
+/* Destructive/secondary logout */
+.user-menu-content .logout-btn{
+  background: transparent; color: #FFE5E8;
 }
 .user-menu-content .logout-btn:hover{ background: rgba(255,77,94,.12); border-color: rgba(255,77,94,.35); }
 

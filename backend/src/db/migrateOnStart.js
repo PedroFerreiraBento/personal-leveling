@@ -4,12 +4,20 @@ const db = require('./connection')
 
 async function migrateOnStart() {
   try {
-    const schemaPath = path.join(__dirname, 'migrations', '001_init.sql')
-    const schema = fs.readFileSync(schemaPath, 'utf8')
+    const dir = path.join(__dirname, 'migrations')
+    const files = fs
+      .readdirSync(dir)
+      .filter(f => f.endsWith('.sql'))
+      .sort((a, b) => a.localeCompare(b))
 
-    // Idempotent DDL because the SQL uses IF NOT EXISTS
-    await db.query(schema)
-    console.log('✅ DB ready (migrations ensured on start)')
+    for (const file of files) {
+      const full = path.join(dir, file)
+      const sql = fs.readFileSync(full, 'utf8')
+      await db.query(sql)
+      console.log(`✅ Ran migration: ${file}`)
+    }
+
+    console.log('✅ DB ready (all migrations applied)')
   } catch (err) {
     console.error('❌ Failed to ensure migrations on start:', err)
     // Do not exit the process; let the server start and show explicit DB errors later

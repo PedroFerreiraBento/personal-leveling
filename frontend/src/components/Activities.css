@@ -77,3 +77,18 @@
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 .submit-btn { background: linear-gradient(135deg, #6cc1ff, #1adfff); color: #07111f; border: none; padding: 12px 16px; border-radius: 12px; font-weight: 800; cursor: pointer; }
 .submit-btn:hover { filter: brightness(1.05); }
+
+/* Array editors (attributes, measures, etc.) */
+.array-editor { display: flex; flex-direction: column; gap: 10px; }
+.array-item { width: 100%; }
+.inline-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.inline-fields.full { grid-template-columns: 1fr; }
+.inline-fields .field { width: 100%; }
+.inline-fields .field.xsmall { width: 100%; }
+.array-editor .field label { color: #9aa6c2; font-weight: 600; display: block; margin-bottom: 6px; }
+.array-editor .field input,
+.array-editor .field select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(6,12,22,.7); color: #e6f0ff; }
+.array-editor .field input::placeholder { color: #93a3c6; }
+
+/* Full-width remove button on its own row */
+.array-editor .inline-fields + .inline-fields button.btn { width: 100%; margin-top: 6px; }

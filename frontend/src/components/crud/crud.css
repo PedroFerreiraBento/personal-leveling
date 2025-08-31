@@ -19,14 +19,64 @@
   flex-direction: column;
   gap: 16px;
 }
-.categories-grid, .crud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.categories-grid, .crud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;align-items:stretch}
 
 /* Cards */
-.category-card, .crud-card{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--line);border-radius:10px;background:rgba(17,26,44,.4);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:transform .12s ease, border-color .12s ease}
-.category-card:hover, .crud-card:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18)}
-.category-card h3, .crud-card h3{margin:0;font-size:1rem}
-.category-card .desc, .crud-card .desc{margin:.25rem 0 0;color:var(--text-3);font-size:.9rem}
-.card-actions, .crud-actions{display:flex;gap:8px}
+.category-card, .crud-card{
+  position:relative;
+  isolation:isolate;
+  border-radius:16px;
+  padding:1px;
+  background-image: linear-gradient(135deg, rgba(74,163,255,.25), rgba(136,84,255,.22) 50%, rgba(255,64,160,.22));
+  transition: transform .12s ease, filter .12s ease;
+  display:flex;
+  min-height: 140px;
+}
+.crud-card::before{ content:""; position:absolute; inset:0; border-radius:inherit; background:inherit; filter:blur(10px); opacity:.45; z-index:0 }
+.category-card:hover, .crud-card:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+
+/* inner surface */
+.crud-inner{
+  border-radius:16px;
+  background: rgba(7,17,31,.75);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+  padding:14px 14px 14px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  position:relative;
+  overflow:hidden;
+  z-index:1;
+  flex:1;
+  height:100%;
+}
+
+/* accent bar (shown always for now; could be toggled with .is-active) */
+.accent-bar{ position:absolute; inset:6px auto 6px 6px; width:4px; border-radius:999px; background-image: linear-gradient(180deg, #4aa3ff, #8b5cf6); opacity:.85 }
+.accent-bar::before{ content:""; position:absolute; left:-10px; top:-20%; bottom:-20%; width:24px; border-radius:999px; filter:blur(16px); background: linear-gradient(180deg, rgba(74,163,255,.35), rgba(139,92,246,.35)); pointer-events:none }
+
+/* header */
+.card-header{ display:flex; align-items:center; gap:10px }
+.category-card h3, .crud-card h3{ margin:0; font-size:1rem; color: var(--text-1); flex:1 }
+.card-actions, .crud-actions{ display:flex; gap:8px; align-items:center; flex-shrink:0 }
+
+/* 3-dots button and menu */
+.icon-btn.more-btn{ width:34px; height:34px; display:grid; place-items:center; border-radius:12px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.06); color:var(--text-2); cursor:pointer }
+.icon-btn.more-btn:hover{ background:rgba(255,255,255,.1) }
+.more-menu{ position:absolute; top:42px; right:12px; display:flex; flex-direction:column; gap:6px; background:rgba(7,17,31,.96); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:8px; box-shadow:0 8px 24px rgba(0,0,0,.35); opacity:0; transform:translateY(-4px); pointer-events:none; transition:opacity .12s ease, transform .12s ease; z-index:10 }
+.more-menu.open{ opacity:1; transform:translateY(0); pointer-events:auto }
+
+/* ensure inner positions for overlays */
+.crud-inner{ position:relative }
+
+/* description and clamp */
+.category-card .desc, .crud-card .desc{ margin:.25rem 0 0; color:var(--text-3); font-size:.9rem; white-space:pre-wrap; word-break:break-word }
+.crud-card .desc.clamp{ display:-webkit-box; -webkit-line-clamp:4; line-clamp:4; -webkit-box-orient:vertical; overflow:hidden }
+.crud-inner.with-fade{ padding-bottom:32px }
+.crud-card .desc-fade{ pointer-events:none; position:absolute; left:0; right:0; bottom:0; height:24px; background: linear-gradient(to top, rgba(7,17,31,.9), transparent); border-bottom-left-radius:16px; border-bottom-right-radius:16px }
 
 /* Buttons */
 .btn{border-radius:8px;padding:8px 12px;cursor:pointer;transition:filter .16s ease, transform .05s ease}
@@ -75,6 +125,19 @@
 .form-group{display:flex;flex-direction:column;gap:6px}
 .form-group input{background:var(--bg-2);color:var(--text-1);border:1px solid var(--line);border-radius:8px;height:40px;padding:0 12px}
 .form-group input:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(0,157,255,.35)}
+/* Make textareas visually consistent with inputs/selects across all CRUD modals/pages */
+.form-group textarea{
+  background: var(--bg-2);
+  color: var(--text-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 140px;
+  line-height: 1.35;
+  resize: vertical;
+}
+.form-group textarea::placeholder{ color: var(--text-3); opacity:.9 }
+.form-group textarea:focus{ outline:none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(0,157,255,.35) }
 /* Make selects visually consistent with inputs across all CRUD modals/pages */
 .form-group select{
   background: var(--bg-2);
@@ -120,5 +183,21 @@
 .array-editor{ display:flex; flex-direction:column; gap:10px; }
 .array-item{ border:1px solid var(--line); border-radius:10px; padding:10px; background: rgba(17,26,44,.4); }
 .inline-fields{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+.inline-fields.compact{ gap:8px; align-items:center }
 .field.small{ min-width: 120px; }
 .field.xsmall{ min-width: 90px; }
+
+/* Segmented control (used in Activities scoring) */
+.segmented{ display:inline-flex; background:rgba(255,255,255,.05); border:1px solid var(--line); padding:2px; border-radius:10px; gap:2px }
+.segmented .option{ background:transparent; color:var(--text-2); border:none; padding:6px 10px; border-radius:8px; cursor:pointer; transition: background .15s ease, color .15s ease, transform .05s ease }
+.segmented .option:hover{ background:rgba(255,255,255,.06); color:var(--text-1) }
+.segmented .option:active{ transform: translateY(1px) }
+.segmented .option.active{ background-image: linear-gradient(135deg, #4aa3ff, #3fd0ff); color:#07111f; box-shadow: 0 4px 12px rgba(0,157,255,.25) }
+.segmented .option:focus-visible{ outline:none; box-shadow: 0 0 0 3px rgba(0,157,255,.35) }
+
+/* Inline checkbox label used in scoring footer */
+.check-inline{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; color: var(--text-2); line-height:1 }
+.check-inline input{ width:16px; height:16px; accent-color:#4aa3ff }
+.checkbox-field{ min-width:auto }
+.checkbox-field .check-inline{ font-size:.85rem }
+.push-right{ margin-left:auto }

@@ -17,6 +17,7 @@
     background:rgba(17,26,44,.95);
     border-right:1px solid var(--line);
     padding: var(--space-7) var(--space-4);
+    z-index: 1000; /* above footer/header */
   }
   .app-sidebar.open{ transform:translateX(0); }
   /* Actions pinned to bottom on mobile */

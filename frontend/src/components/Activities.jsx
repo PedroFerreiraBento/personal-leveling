@@ -11,6 +11,7 @@ function Activities() {
   const { user } = useAuth()
   const [activities, setActivities] = useState([])
   const [categories, setCategories] = useState([])
+  const [attributesList, setAttributesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showCreate, setShowCreate] = useState(false)
@@ -25,6 +26,7 @@ function Activities() {
     polarity: 'positive', 
     measures: [], 
     derivedMeasures: [],
+    attributes: { model: 'weights', entries: [] },
     scoring: {
       mode: 'simple',
       simple: { measureRef: '', pointsPerUnit: '', basePoints: '' },
@@ -39,6 +41,7 @@ function Activities() {
   useEffect(() => {
     fetchActivities()
     fetchCategories()
+    fetchAttributes()
   }, [])
 
   // Close on ESC handled inside CrudFormModal
@@ -62,6 +65,14 @@ function Activities() {
       console.error('Error fetching categories:', err)
     }
   }
+  const fetchAttributes = async () => {
+    try {
+      const res = await axios.get(`/api/attributes?user_id=${user.id}`)
+      setAttributesList(res.data.data || [])
+    } catch (err) {
+      console.error('Error fetching attributes:', err)
+    }
+  }
   
 
   const handleSave = async (form) => {
@@ -72,6 +83,13 @@ function Activities() {
         short_description: form.shortDescription || null,
         category_id: form.categoryId || null,
         polarity: form.polarity || 'positive',
+        attributes: {
+          model: (form.attributes?.model || 'weights'),
+          entries: (form.attributes?.entries || []).map(e => ({
+            key: (e.key || '').trim(),
+            value: e.value !== '' && e.value != null ? Number(e.value) : null,
+          })).filter(e => e.key)
+        },
         measures: (form.measures || []).map(m => ({
           key: (m.key || '').trim(),
           label: (m.label || '').trim(),
@@ -89,6 +107,7 @@ function Activities() {
         })),
         scoring: (() => {
           const s = form.scoring || {}
+          const globalBase = s.basePoints !== '' && s.basePoints != null ? Number(s.basePoints) : null
           const out = {
             mode: s.mode || 'simple',
             rounding: s.rounding || 'none',
@@ -99,7 +118,7 @@ function Activities() {
             out.simple = {
               measureRef: (s.simple?.measureRef || '').trim(),
               pointsPerUnit: s.simple?.pointsPerUnit !== '' && s.simple?.pointsPerUnit != null ? Number(s.simple.pointsPerUnit) : null,
-              basePoints: s.simple?.basePoints !== '' && s.simple?.basePoints != null ? Number(s.simple.basePoints) : null,
+              basePoints: globalBase,
             }
           } else if (out.mode === 'linear') {
             out.linear = {
@@ -108,7 +127,7 @@ function Activities() {
                 pointsPerUnit: t.pointsPerUnit !== '' && t.pointsPerUnit != null ? Number(t.pointsPerUnit) : null,
                 capUnits: t.capUnits !== '' && t.capUnits != null ? Number(t.capUnits) : null,
               })),
-              basePoints: s.linear?.basePoints !== '' && s.linear?.basePoints != null ? Number(s.linear.basePoints) : null,
+              basePoints: globalBase,
             }
           } else if (out.mode === 'formula') {
             out.formula = {
@@ -249,6 +268,64 @@ function Activities() {
                 <option value="negative">negativo</option>
               </select>
           </div>
+          {/* Distribuição da pontuação em atributos */}
+          <div className="form-group" style={{ marginTop: 8 }}>
+            <label className="lbl" title="Define para onde os pontos da atividade vão e em qual proporção.">Distribuição da pontuação em atributos</label>
+            <div className="segmented">
+              {['weights','percent'].map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={`option ${((form.attributes?.model||'weights')===opt)?'active':''}`}
+                  onClick={()=> setForm({ ...form, attributes: { ...(form.attributes||{}), model: opt } })}
+                >
+                  {opt === 'weights' ? 'Pesos' : 'Percentual'}
+                </button>
+              ))}
+            </div>
+            <p className="note">
+              {form.attributes?.model === 'percent' ? 'A soma deve fechar 100. A normalização é aplicada.' : 'Soma livre de pesos. A normalização é aplicada.'}
+            </p>
+            <div className="array-editor">
+              {(form.attributes?.entries || []).map((a, idx) => (
+                <div className="array-item" key={idx}>
+                  <div className="inline-fields full">
+                    <div className="field">
+                      <label>Atributo</label>
+                      <select
+                        value={a.key || ''}
+                        onChange={(e)=>{
+                          const arr=[...(form.attributes?.entries||[])];arr[idx]={...arr[idx], key:e.target.value};setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
+                        }}
+                      >
+                        <option value="">Selecione um atributo</option>
+                        {attributesList.map(opt => (
+                          <option key={opt.id} value={opt.name}>{opt.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="inline-fields full">
+                    <div className="field xsmall">
+                      <label>{form.attributes?.model === 'percent' ? 'Percentual' : 'Peso'}</label>
+                      <input type="number" value={a.value ?? ''} onChange={(e)=>{
+                        const arr=[...(form.attributes?.entries||[])];arr[idx]={...arr[idx], value:e.target.value};setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
+                      }} />
+                    </div>
+                  </div>
+                  <div className="inline-fields full">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={()=>{
+                      const arr=[...(form.attributes?.entries||[])];arr.splice(idx,1);setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
+                    }}>Remover</button>
+                  </div>
+                </div>
+              ))}
+              <button type="button" className="btn btn-secondary" onClick={()=>{
+                const arr=[...(form.attributes?.entries||[]), { key:'', value:'' }];
+                setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
+              }}>+ Adicionar atributo</button>
+            </div>
+          </div>
           <hr className="sep" />
 
             <h3>Medidas</h3>
@@ -336,26 +413,32 @@ function Activities() {
                   <label className="lbl" title="Modo de cálculo de pontos: simples, linear (somatório de termos) ou fórmula.">Modo</label>
                   <div className="segmented">
                     {['simple','linear','formula'].map(opt => (
-                      <button key={opt} type="button" className={`option ${((form.scoring?.mode||'simple')===opt)?'active':''}`} onClick={()=> setForm({ ...form, scoring: { ...(form.scoring||{}), mode: opt } })}>{opt}</button>
+                      <button
+                        key={opt}
+                        type="button"
+                        className={`option ${((form.scoring?.mode||'simple')===opt)?'active':''}`}
+                        onClick={()=> setForm({ ...form, scoring: { ...(form.scoring||{}), mode: opt } })}
+                      >
+                        {opt === 'simple' ? 'Simples' : opt === 'linear' ? 'Linear' : 'Fórmula'}
+                      </button>
                     ))}
                   </div>
                 </div>
 
+                
+
                 {(form.scoring?.mode || 'simple') === 'simple' && (
-                  <div className="inline-fields">
-                    <div className="field">
-                      <label title="Chave da medida usada para pontuar.">measureRef</label>
+                  <>
+                    <div className="form-row">
+                      <label title="Chave da medida usada para pontuar.">Medida</label>
                       <input type="text" list="measure-keys" value={form.scoring?.simple?.measureRef || ''} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), simple: { ...(form.scoring?.simple||{}), measureRef: e.target.value } } })} />
                     </div>
-                    <div className="field xsmall">
-                      <label title="Pontos por unidade da medida.">pointsPerUnit</label>
+                    <div className="form-row">
+                      <label title="Pontos por unidade da medida.">Pontos/unid.</label>
                       <input type="number" value={form.scoring?.simple?.pointsPerUnit ?? ''} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), simple: { ...(form.scoring?.simple||{}), pointsPerUnit: e.target.value } } })} />
                     </div>
-                    <div className="field xsmall">
-                      <label title="Bônus fixo por lançamento (opcional).">basePoints</label>
-                      <input type="number" value={form.scoring?.simple?.basePoints ?? ''} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), simple: { ...(form.scoring?.simple||{}), basePoints: e.target.value } } })} />
-                    </div>
-                  </div>
+                    
+                  </>
                 )}
 
                 {form.scoring?.mode === 'linear' && (
@@ -364,21 +447,21 @@ function Activities() {
                       <div className="array-item" key={i}>
                         <div className="inline-fields">
                           <div className="field">
-                            <label title="Chave da medida (ou derivada) utilizada no termo.">measureRef</label>
+                            <label title="Chave da medida (ou derivada) utilizada no termo.">Medida</label>
                             <input type="text" list="measure-keys" value={t.measureRef || ''} onChange={(e)=>{
                               const terms=[...(form.scoring?.linear?.terms||[])];terms[i]={...terms[i], measureRef:e.target.value};
                               setForm({...form, scoring:{...(form.scoring||{}), linear:{...(form.scoring?.linear||{}), terms}}})
                             }} />
                           </div>
                           <div className="field xsmall">
-                            <label title="Pontos por unidade do termo.">pointsPerUnit</label>
+                            <label title="Pontos por unidade do termo.">Pontos/unid.</label>
                             <input type="number" value={t.pointsPerUnit ?? ''} onChange={(e)=>{
                               const terms=[...(form.scoring?.linear?.terms||[])];terms[i]={...terms[i], pointsPerUnit:e.target.value};
                               setForm({...form, scoring:{...(form.scoring||{}), linear:{...(form.scoring?.linear||{}), terms}}})
                             }} />
                           </div>
                           <div className="field xsmall">
-                            <label title="Pontua apenas até X unidades.">capUnits</label>
+                            <label title="Pontua apenas até X unidades.">Limite (unid.)</label>
                             <input type="number" value={t.capUnits ?? ''} onChange={(e)=>{
                               const terms=[...(form.scoring?.linear?.terms||[])];terms[i]={...terms[i], capUnits:e.target.value};
                               setForm({...form, scoring:{...(form.scoring||{}), linear:{...(form.scoring?.linear||{}), terms}}})
@@ -396,51 +479,63 @@ function Activities() {
                         const terms=[...(form.scoring?.linear?.terms||[]), { measureRef:'', pointsPerUnit:'', capUnits:'' }]
                         setForm({...form, scoring:{...(form.scoring||{}), linear:{...(form.scoring?.linear||{}), terms}}})
                       }}>+ Adicionar termo</button>
-                      <div className="field xsmall">
-                        <label title="Bônus fixo por lançamento (opcional).">basePoints</label>
-                        <input type="number" value={form.scoring?.linear?.basePoints ?? ''} onChange={(e)=> setForm({...form, scoring:{...(form.scoring||{}), linear:{...(form.scoring?.linear||{}), basePoints: e.target.value }}})} />
-                      </div>
                     </div>
                   </div>
                 )}
 
                 {form.scoring?.mode === 'formula' && (
-                  <div className="inline-fields">
-                    <div className="field fill">
-                      <label title="Expressão para calcular pontos (ex.: distance*1 + (time/10)*0.5 + 2).">expressão</label>
+                  <>
+                    <div className="form-row">
+                      <label title="Expressão para calcular pontos (ex.: distance*1 + (time/10)*0.5 + 2).">Expressão</label>
                       <input type="text" value={form.scoring?.formula?.expression || ''} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), formula: { ...(form.scoring?.formula||{}), expression: e.target.value } } })} />
                     </div>
-                    <div className="field xsmall">
-                      <label title="Limite mínimo opcional para o resultado.">clamp.min</label>
+                    <div className="form-row">
+                      <label title="Limite mínimo opcional para o resultado.">Mínimo</label>
                       <input type="number" value={form.scoring?.formula?.safeClamp?.min ?? ''} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), formula: { ...(form.scoring?.formula||{}), safeClamp: { ...(form.scoring?.formula?.safeClamp||{}), min: e.target.value } } } })} />
                     </div>
-                    <div className="field xsmall">
-                      <label title="Limite máximo opcional para o resultado.">clamp.max</label>
+                    <div className="form-row">
+                      <label title="Limite máximo opcional para o resultado.">Máximo</label>
                       <input type="number" value={form.scoring?.formula?.safeClamp?.max ?? ''} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), formula: { ...(form.scoring?.formula||{}), safeClamp: { ...(form.scoring?.formula?.safeClamp||{}), max: e.target.value } } } })} />
                     </div>
-                  </div>
+                  </>
                 )}
 
-                <div className="inline-fields">
-                  <div className="field small">
-                    <label title="Arredondamento aplicado ao resultado final.">rounding</label>
-                    <select value={form.scoring?.rounding || 'none'} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), rounding: e.target.value } })}>
-                      <option value="none">none</option>
-                      <option value="floor">floor</option>
-                      <option value="ceil">ceil</option>
-                      <option value="nearest">nearest</option>
-                    </select>
-                  </div>
-                  <div className="field xsmall">
-                    <label title="Precisão de casas decimais do resultado (0–3).">precision</label>
-                    <input type="number" min="0" max="3" value={form.scoring?.precision ?? 0} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), precision: e.target.value } })} />
-                  </div>
-                  <div className="field small" style={{ alignSelf:'flex-end' }}>
-                    <label title="Permitir resultado negativo.">
-                      <input type="checkbox" checked={!!(form.scoring?.allowNegative ?? true)} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), allowNegative: e.target.checked } })} /> permitir negativo
-                    </label>
-                  </div>
+                {/* Global options that apply to all modes; placed after mode-specific fields */}
+                <div className="form-row">
+                  <label title="Bônus fixo por lançamento (opcional).">Pontos base</label>
+                  <input
+                    type="number"
+                    value={
+                      form.scoring?.basePoints ??
+                      form.scoring?.simple?.basePoints ??
+                      form.scoring?.linear?.basePoints ??
+                      ''
+                    }
+                    onChange={(e)=> setForm({
+                      ...form,
+                      scoring: { ...(form.scoring||{}), basePoints: e.target.value }
+                    })}
+                  />
                 </div>
+                <div className="form-row">
+                  <label title="Precisão de casas decimais do resultado (0–3).">Precisão</label>
+                  <input type="number" min="0" max="3" value={form.scoring?.precision ?? 0} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), precision: e.target.value } })} />
+                </div>
+                <div className="form-row">
+                  <label title="Arredondamento aplicado ao resultado final.">Arredondamento</label>
+                  <select value={form.scoring?.rounding || 'none'} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), rounding: e.target.value } })}>
+                    <option value="none">nenhum</option>
+                    <option value="floor">para baixo</option>
+                    <option value="ceil">para cima</option>
+                    <option value="nearest">mais próximo</option>
+                  </select>
+                </div>
+                <div className="inline-fields compact">
+                  <label className="check-inline" title="Permitir resultado negativo.">
+                    <input type="checkbox" checked={!!(form.scoring?.allowNegative ?? true)} onChange={(e)=> setForm({ ...form, scoring: { ...(form.scoring||{}), allowNegative: e.target.checked } })} /> Permitir negativo
+                  </label>
+                </div>
+
                 <p className="note">Dica: use as chaves das medidas/derivadas em expressões, como <code>distance</code> e <code>time</code>.</p>
               </div>
             </div>

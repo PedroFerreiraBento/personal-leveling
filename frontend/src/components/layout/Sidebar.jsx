@@ -43,6 +43,13 @@ const Sidebar = ({ open = false }) => {
           <span className="label">Categories</span>
         </NavLink>
         <NavLink
+          to="/attributes"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+        >
+          <span className="icon">🧩</span>
+          <span className="label">Attributes</span>
+        </NavLink>
+        <NavLink
           to="/tasks"
           className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >

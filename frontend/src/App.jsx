@@ -14,6 +14,7 @@ import Activities from "./components/Activities";
 import Categories from "./components/Categories";
 import Tasks from "./components/Tasks";
 import Notes from "./components/Notes";
+import Attributes from "./components/Attributes";
 import { Layout } from "./components/layout";
 
 // Context
@@ -50,6 +51,7 @@ function App() {
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/activities" element={<Activities />} />
+              <Route path="/attributes" element={<Attributes />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/categories" element={<Categories />} />

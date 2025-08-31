@@ -11,6 +11,8 @@ import React, { useEffect, useRef, useState } from 'react'
 // - onSubmit: (form) => void  // passes full form, includes name/short_description and any custom fields
 // - onClose: () => void
 // - onHelp?: () => void
+// - helpTitle?: string
+// - helpContent?: React.ReactNode
 // - customFields?: ({ form, setForm }) => React.ReactNode
 // - hideBaseFields?: boolean  // if true, consumer will render all fields via customFields
 const CrudFormModal = ({
@@ -23,6 +25,8 @@ const CrudFormModal = ({
   onSubmit,
   onClose,
   onHelp,
+  helpTitle = 'Como usar',
+  helpContent,
   customFields,
   hideBaseFields = false
 }) => {
@@ -151,15 +155,21 @@ const CrudFormModal = ({
           <div className="overcontent" role="dialog" aria-modal="true" aria-label="Ajuda">
             <div className="overcontent-card">
               <div className="overcontent-header">
-                <h3>Como usar</h3>
+                <h3>{helpTitle}</h3>
                 <button className="btn btn-ghost close-btn" aria-label="Fechar ajuda" onClick={() => setShowHelp(false)}>✕</button>
               </div>
               <div className="overcontent-body">
-                <p>Use este formulário para criar/editar registros rapidamente.</p>
-                <ul>
-                  <li>Nome curto e direto (máx. {nameMax}).</li>
-                  <li>Descrição curta opcional (máx. {descMax}).</li>
-                </ul>
+                {helpContent ? (
+                  helpContent
+                ) : (
+                  <>
+                    <p>Use este formulário para criar/editar registros rapidamente.</p>
+                    <ul>
+                      <li>Nome curto e direto (máx. {nameMax}).</li>
+                      <li>Descrição curta opcional (máx. {descMax}).</li>
+                    </ul>
+                  </>
+                )}
               </div>
             </div>
           </div>

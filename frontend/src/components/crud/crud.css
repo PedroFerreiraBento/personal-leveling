@@ -172,11 +172,28 @@
 
 /* Overcontent help */
 .overcontent{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:1000}
-.overcontent-card{width:min(560px,92vw);background:rgba(17,26,44,.92);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.overcontent-card{width:min(560px,92vw);background:rgba(17,26,44,.92);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);max-height:min(86vh,820px);display:flex;flex-direction:column}
 .overcontent-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .overcontent-header h3{margin:0}
+.overcontent-body{flex:1;min-height:0;overflow:auto;padding-right:6px}
 .overcontent-body p{margin:.25rem 0 .5rem;color:var(--text-1)}
 .overcontent-body ul{margin:0 0 .25rem 1rem;color:var(--text-1)}
+
+/* Fullscreen variant for double-click expansion */
+.overcontent.fullscreen{ align-items: stretch; justify-content: stretch; padding: 24px; top:64px }
+.overcontent-card.fullscreen{
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.overcontent-card.fullscreen .overcontent-body{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
 
 /* Form utilities for complex editors */
 .sep{ border: none; border-top: 1px solid var(--line); margin: 12px 0; }

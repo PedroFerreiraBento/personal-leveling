@@ -15,6 +15,9 @@ function Activities() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editInitial, setEditInitial] = useState(null)
   const [filterField, setFilterField] = useState('title')
   const [filterQuery, setFilterQuery] = useState('')
   
@@ -78,6 +81,7 @@ function Activities() {
   const handleSave = async (form) => {
     try {
       await axios.post('/api/activities', {
+        id: isEditing && editingId ? editingId : undefined,
         user_id: user.id,
         title: form.name,
         short_description: form.shortDescription || null,
@@ -86,21 +90,23 @@ function Activities() {
         attributes: {
           model: (form.attributes?.model || 'weights'),
           entries: (form.attributes?.entries || []).map(e => ({
-            key: (e.key || '').trim(),
+            attribute_id: (e.attribute_id || '').trim(),
             value: e.value !== '' && e.value != null ? Number(e.value) : null,
-          })).filter(e => e.key)
+            polarity: (e.polarity || 'positive'),
+            model: (form.attributes?.model || 'weights'),
+          })).filter(e => e.attribute_id)
         },
         measures: (form.measures || []).map(m => ({
           key: (m.key || '').trim(),
           label: (m.label || '').trim(),
           unit: m.unit || 'custom',
           decimals: Number.isFinite(+m.decimals) ? Math.min(3, Math.max(0, +m.decimals)) : 0,
-          minPerEntry: m.minPerEntry !== '' && m.minPerEntry != null ? Number(m.minPerEntry) : null,
-          maxPerEntry: m.maxPerEntry !== '' && m.maxPerEntry != null ? Number(m.maxPerEntry) : null,
+          min: m.minPerEntry !== '' && m.minPerEntry != null ? Number(m.minPerEntry) : (m.min !== '' && m.min != null ? Number(m.min) : null),
+          max: m.maxPerEntry !== '' && m.maxPerEntry != null ? Number(m.maxPerEntry) : (m.max !== '' && m.max != null ? Number(m.max) : null),
           step: m.step !== '' && m.step != null ? Number(m.step) : null,
-          defaultValue: m.defaultValue !== '' && m.defaultValue != null ? Number(m.defaultValue) : null,
+          default: m.defaultValue !== '' && m.defaultValue != null ? Number(m.defaultValue) : (m.default !== '' && m.default != null ? Number(m.default) : null),
         })),
-        derivedMeasures: (form.derivedMeasures || []).map(d => ({
+        derived_measures: (form.derivedMeasures || []).map(d => ({
           key: (d.key || '').trim(),
           label: (d.label || '').trim(),
           formula: (d.formula || '').trim(),
@@ -143,9 +149,97 @@ function Activities() {
       })
       fetchActivities()
       setShowCreate(false)
+      setIsEditing(false)
+      setEditingId(null)
+      setEditInitial(null)
     } catch (error) {
       setError('Erro ao criar atividade')
       console.error('Error creating activity:', error)
+    }
+  }
+
+  const openEdit = async (activity) => {
+    setIsEditing(true)
+    setEditingId(activity.id)
+    try {
+      const { data } = await axios.get(`/api/activities/${activity.id}?user_id=${user.id}`)
+      const full = data.data
+      const mapped = {
+        ...INITIAL_FORM,
+        name: full.title || '',
+        shortDescription: full.short_description || '',
+        categoryId: full.category_id || '',
+        polarity: full.polarity || 'positive',
+        attributes: {
+          model: full.attributes?.model || 'weights',
+          entries: (full.attributes?.entries || []).map(e => ({
+            attribute_id: e.attribute_id || '',
+            value: e.value,
+            polarity: e.polarity || 'positive',
+          }))
+        },
+        measures: (full.measures || []).map(m => ({
+          key: m.key || '',
+          label: m.label || '',
+          unit: m.unit || 'custom',
+          decimals: m.decimals ?? 0,
+          min: m.min ?? m.minPerEntry ?? null,
+          max: m.max ?? m.maxPerEntry ?? null,
+          step: m.step ?? null,
+          default: m.default ?? m.defaultValue ?? null,
+        })),
+        derivedMeasures: (full.derived_measures || full.derivedMeasures || []).map(d => ({
+          key: d.key || '',
+          label: d.label || '',
+          formula: d.formula || '',
+        })),
+        scoring: (() => {
+          const s = full.scoring || {}
+          const out = {
+            mode: s.mode || 'simple',
+            rounding: s.rounding || 'none',
+            precision: s.precision ?? 0,
+            allowNegative: s.allowNegative !== false,
+            basePoints: s.basePoints ?? null,
+          }
+          if (out.mode === 'simple' && s.simple) {
+            out.simple = {
+              measureRef: s.simple.measure_ref || s.simple.measureRef || '',
+              pointsPerUnit: s.simple.points_per_unit ?? s.simple.pointsPerUnit ?? '',
+            }
+          } else if (out.mode === 'linear' && s.linear) {
+            out.linear = {
+              terms: (s.linear.terms || []).map(t => ({
+                measureRef: t.measure_ref || t.measureRef || '',
+                pointsPerUnit: t.points_per_unit ?? t.pointsPerUnit ?? '',
+                capUnits: t.cap_units ?? t.capUnits ?? '',
+              })),
+            }
+          } else if (out.mode === 'formula' && s.formula) {
+            out.formula = {
+              expression: s.formula.expression || '',
+              safeClamp: {
+                min: s.formula.clamp_min ?? s.formula.safeClamp?.min ?? null,
+                max: s.formula.clamp_max ?? s.formula.safeClamp?.max ?? null,
+              }
+            }
+          }
+          return out
+        })(),
+      }
+      setEditInitial(mapped)
+      setShowCreate(true)
+    } catch (e) {
+      console.error('Error loading activity for edit:', e)
+      // Fallback to base fields if detail fetch fails
+      setEditInitial({
+        ...INITIAL_FORM,
+        name: activity.title || '',
+        shortDescription: activity.short_description || '',
+        categoryId: activity.category_id || '',
+        polarity: activity.polarity || 'positive',
+      })
+      setShowCreate(true)
     }
   }
 
@@ -200,7 +294,8 @@ function Activities() {
               key={activity.id}
               item={activity}
               title={activity.title}
-              description={`${activity.category ? activity.category + ' · ' : ''}${activity.duration_minutes} minutos · ${new Date(activity.timestamp).toLocaleDateString('pt-BR')}`}
+              description={activity.short_description || ''}
+              onEdit={openEdit}
               onDelete={handleDelete}
             />
           ))}
@@ -209,11 +304,98 @@ function Activities() {
 
       <CrudFormModal
         open={showCreate}
-        title="Nova Atividade"
+        title={isEditing ? 'Editar Atividade' : 'Nova Atividade'}
         subtitle="Identificação"
-        initial={INITIAL_FORM}
+        initial={isEditing && editInitial ? editInitial : INITIAL_FORM}
         onSubmit={handleSave}
-        onClose={() => setShowCreate(false)}
+        onClose={() => { setShowCreate(false); setIsEditing(false); setEditingId(null); setEditInitial(null) }}
+        helpTitle="Como configurar uma Atividade"
+        helpContent={(
+          <div>
+            <p><strong>O que é:</strong> um molde de atividade. Depois você fará lançamentos usando este molde.</p>
+
+            <h4>Passo a passo</h4>
+            <h5>Identificação</h5>
+            <ul>
+              <li><strong>Título</strong>: curto e específico (recomendado ≤ 64, limite técnico 500).</li>
+              <li><strong>Descrição curta</strong>: objetivo em 1 frase (≤ 120).</li>
+              <li><strong>Categoria</strong>: escolha uma das categorias criadas.</li>
+              <li><strong>Polaridade</strong>: positiva | neutra | negativa (indica a intenção geral desta atividade).</li>
+            </ul>
+
+            <h5>Medidas (inputs do lançamento)</h5>
+            <ul>
+              <li>Adicione uma ou mais medidas base (ex.: distance (km), time (min)).</li>
+              <li>Para cada medida: <em>chave</em> única na atividade, rótulo, unidade, decimais (0–3), mín./máx./step e valor padrão (opcionais).</li>
+              <li>Pode criar <strong>medidas derivadas</strong> (não digitadas) com fórmula usando as chaves das medidas (ex.: pace = time / distance).</li>
+            </ul>
+
+            <h5>Pontuação da atividade (transforma medidas em pontos)</h5>
+            <p><strong>Modo:</strong></p>
+            <ul>
+              <li><code>simple</code> → informe measureRef + pointsPerUnit (+ basePoints opcional).</li>
+              <li><code>linear</code> → adicione termos; cada termo = measureRef + pointsPerUnit (+ capUnits opcional).</li>
+              <li><code>formula</code> → escreva expression (ex.: distance*1 + (time/10)*0.5 + 2) e, se quiser, clamp_min/max.</li>
+            </ul>
+            <ul>
+              <li><strong>Arredondamento</strong>: none | floor | ceil | nearest + precisão (0–3).</li>
+              <li><strong>Permitir negativo</strong>: se desmarcar, a pontuação negativa será bloqueada/zerada conforme a implementação.</li>
+              <li><strong>Base points</strong>: bônus fixo por lançamento (em qualquer modo).</li>
+            </ul>
+
+            <h5>Distribuição em Atributos (para onde vão os pontos)</h5>
+            <p>Para cada atributo afetado, cadastre uma linha em <em>Atributos da atividade</em>:</p>
+            <ul>
+              <li><strong>Atributo, Valor e Modelo da atividade</strong>:
+                <ul>
+                  <li><code>weights</code> → valores livres (o sistema normaliza internamente).</li>
+                  <li><code>percent</code> → deve fechar 100% no total.</li>
+                </ul>
+              </li>
+              <li><strong>Polaridade por atributo</strong> (opcional): use se algum atributo específico deva receber impacto inverso.</li>
+              <li><em>Importante</em>: para uma mesma atividade, use o mesmo modelo (weights ou percent) em todas as linhas.</li>
+            </ul>
+
+            <h4>Boas práticas</h4>
+            <ul>
+              <li>Comece simples: 1–2 medidas e <em>linear</em> já cobrem 90% dos casos.</li>
+              <li>Use <em>formula</em> só quando precisar de relações não lineares.</li>
+              <li>Padronize chaves das medidas (<code>distance</code>, <code>time</code>, <code>pages</code>) — sem espaços.</li>
+              <li>Valide com um exemplo mental: “Se eu lançar 5 km e 30 min, quantos pontos dá?”</li>
+              <li>Evite duplicar títulos: cada usuário não pode repetir o mesmo título.</li>
+            </ul>
+
+            <h4>Restrições úteis (para evitar erros)</h4>
+            <ul>
+              <li>Título único por usuário.</li>
+              <li>Medidas: chave única por atividade; decimais 0–3.</li>
+              <li><code>percent</code> precisa somar 100%; <code>weights</code> podem somar qualquer coisa (serão normalizados).</li>
+              <li>Derived: a fórmula só pode usar chaves existentes; evite dependências circulares.</li>
+            </ul>
+
+            <h4>Exemplos rápidos</h4>
+            <p><strong>Corrida (positiva)</strong>:</p>
+            <ul>
+              <li>Medidas: distance (km), time (min)</li>
+              <li>Pontuação: linear → 1 * distance + 0.05 * time</li>
+              <li>Atributos (percent): Vitalidade 70, Disciplina 30</li>
+            </ul>
+            <p><strong>Leitura (positiva)</strong>:</p>
+            <ul>
+              <li>Medida: pages</li>
+              <li>Pontuação: simple → 0.2 ponto por página</li>
+              <li>Atributos (weights): Conhecimento 3, Clareza 1</li>
+            </ul>
+            <p><strong>Scroll madrugada (negativa)</strong>:</p>
+            <ul>
+              <li>Medida: sessions</li>
+              <li>Pontuação: simple → -1 por sessão (permitir negativo)</li>
+              <li>Atributos (percent): Disciplina 60, Clareza 40</li>
+            </ul>
+
+            <p><em>Dica</em>: se algo ficar complexo, salve a atividade em rascunho só com 1 medida e um modo simple. Você pode evoluir depois sem perder lançamentos.</p>
+          </div>
+        )}
         hideBaseFields
         customFields={({ form, setForm }) => (
           <section>
@@ -268,9 +450,10 @@ function Activities() {
                 <option value="negative">negativo</option>
               </select>
           </div>
-          {/* Distribuição da pontuação em atributos */}
+          {/* Distribuição de Atributos */}
+          <hr className="sep" />
           <div className="form-group" style={{ marginTop: 8 }}>
-            <label className="lbl" title="Define para onde os pontos da atividade vão e em qual proporção.">Distribuição da pontuação em atributos</label>
+            <h3 title="Define para onde os pontos da atividade vão e em qual proporção.">Distribuição de Atributos</h3>
             <div className="segmented">
               {['weights','percent'].map(opt => (
                 <button
@@ -293,15 +476,30 @@ function Activities() {
                     <div className="field">
                       <label>Atributo</label>
                       <select
-                        value={a.key || ''}
+                        value={a.attribute_id || ''}
                         onChange={(e)=>{
-                          const arr=[...(form.attributes?.entries||[])];arr[idx]={...arr[idx], key:e.target.value};setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
+                          const arr=[...(form.attributes?.entries||[])];arr[idx]={...arr[idx], attribute_id:e.target.value};setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
                         }}
                       >
                         <option value="">Selecione um atributo</option>
                         {attributesList.map(opt => (
-                          <option key={opt.id} value={opt.name}>{opt.name}</option>
+                          <option key={opt.id} value={opt.id}>{opt.name}</option>
                         ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="inline-fields full">
+                    <div className="field xsmall">
+                      <label>Polaridade</label>
+                      <select
+                        value={a.polarity || 'positive'}
+                        onChange={(e)=>{
+                          const arr=[...(form.attributes?.entries||[])];arr[idx]={...arr[idx], polarity:e.target.value};setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
+                        }}
+                      >
+                        <option value="positive">positivo</option>
+                        <option value="neutral">neutro</option>
+                        <option value="negative">negativo</option>
                       </select>
                     </div>
                   </div>
@@ -321,7 +519,7 @@ function Activities() {
                 </div>
               ))}
               <button type="button" className="btn btn-secondary" onClick={()=>{
-                const arr=[...(form.attributes?.entries||[]), { key:'', value:'' }];
+                const arr=[...(form.attributes?.entries||[]), { attribute_id:'', value:'', polarity:'positive' }];
                 setForm({...form, attributes:{...(form.attributes||{}), entries:arr}})
               }}>+ Adicionar atributo</button>
             </div>

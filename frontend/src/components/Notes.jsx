@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import CrudLayout from './crud/CrudLayout'
+import CrudCard from './crud/CrudCard'
+import CrudFormModal from './crud/CrudFormModal'
 
 function Notes() {
   const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState(null) // note being edited or null for create
   const [form, setForm] = useState({ title: '', content: '' })
 
   useEffect(() => { load() }, [])
@@ -22,17 +27,31 @@ function Notes() {
     }
   }
 
-  async function createNote(e) {
-    e.preventDefault()
+  function openCreate() {
+    setEditing(null)
+    setForm({ title: '', content: '' })
+    setModalOpen(true)
+  }
+
+  function openEdit(note) {
+    setEditing(note)
+    setForm({ title: note.title || '', content: note.content || '' })
+    setModalOpen(true)
+  }
+
+  async function submitForm(payload) {
     try {
-      await axios.post('/api/notes', {
-        title: form.title,
-        content: form.content,
-      })
+      if (editing) {
+        await axios.patch(`/api/notes/${editing.id}`, payload)
+      } else {
+        await axios.post('/api/notes', payload)
+      }
+      setModalOpen(false)
+      setEditing(null)
       setForm({ title: '', content: '' })
       load()
     } catch (e) {
-      setError('Falha ao criar nota')
+      setError(editing ? 'Falha ao atualizar nota' : 'Falha ao criar nota')
       console.error(e)
     }
   }
@@ -60,57 +79,67 @@ function Notes() {
   if (loading) return <div>Carregando...</div>
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 16 }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Notas (demo)</h1>
-        <a href="/" style={{ textDecoration: 'none' }}>← Início</a>
-      </header>
+    <CrudLayout
+      title="Notas (demo)"
+      actions={(
+        <button className="btn btn-primary" onClick={openCreate}>+ Nova</button>
+      )}
+    >
+      {error && <div className="alert error" style={{ marginBottom: 12 }}>{error}</div>}
 
-      <section style={{ marginTop: 16, padding: 12, border: '1px solid #ddd', borderRadius: 8 }}>
-        <h2>Criar nova</h2>
-        <form onSubmit={createNote} style={{ display: 'grid', gap: 8 }}>
-          <input
-            type="text"
-            placeholder="Título"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-          />
-          <textarea
-            rows={4}
-            placeholder="Conteúdo (opcional)"
-            value={form.content}
-            onChange={(e) => setForm({ ...form, content: e.target.value })}
-          />
-          <button type="submit">Adicionar</button>
-        </form>
-      </section>
+      {notes.length === 0 ? (
+        <p className="muted">Nenhuma nota.</p>
+      ) : (
+        <div className="crud-grid">
+          {notes.map((n) => (
+            <CrudCard
+              key={n.id}
+              item={n}
+              title={n.title}
+              description={n.content}
+              onEdit={() => openEdit(n)}
+              onDelete={() => deleteNote(n.id)}
+            />
+          ))}
+        </div>
+      )}
 
-      {error && <div style={{ color: 'crimson', marginTop: 12 }}>{error}</div>}
-
-      <section style={{ marginTop: 16 }}>
-        <h2>Lista</h2>
-        {notes.length === 0 ? (
-          <p>Nenhuma nota.</p>
-        ) : (
-          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 12 }}>
-            {notes.map((n) => (
-              <li key={n.id} style={{ border: '1px solid #eee', borderRadius: 8, padding: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong>{n.title}</strong>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => updateNote(n.id, { title: prompt('Novo título', n.title) ?? n.title })}>Renomear</button>
-                    <button onClick={() => deleteNote(n.id)} style={{ color: 'crimson' }}>Excluir</button>
-                  </div>
-                </div>
-                {n.content && <p style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{n.content}</p>}
-                <small style={{ color: '#666' }}>Criado: {new Date(n.created_at).toLocaleString()}</small>
-              </li>
-            ))}
-          </ul>
+      <CrudFormModal
+        open={modalOpen}
+        title={editing ? 'Editar nota' : 'Nova nota'}
+        hideBaseFields
+        showSectionPager={false}
+        onClose={() => { setModalOpen(false); setEditing(null) }}
+        onSubmit={() => submitForm({ title: form.title.trim(), content: form.content?.trim() || null })}
+        customFields={({}) => (
+          <>
+            <section>
+              <h3>Título</h3>
+              <div className="form-group">
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="Ex: Ideias para o projeto"
+                  required
+                />
+              </div>
+            </section>
+            <section>
+              <h3>Conteúdo</h3>
+              <div className="form-group">
+                <textarea
+                  rows={6}
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  placeholder="Opcional"
+                />
+              </div>
+            </section>
+          </>
         )}
-      </section>
-    </div>
+      />
+    </CrudLayout>
   )
 }
 

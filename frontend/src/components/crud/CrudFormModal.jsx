@@ -28,7 +28,8 @@ const CrudFormModal = ({
   helpTitle = 'Como usar',
   helpContent,
   customFields,
-  hideBaseFields = false
+  hideBaseFields = false,
+  showSectionPager = true
 }) => {
   const [form, setForm] = useState(initial)
   const [showHelp, setShowHelp] = useState(false)
@@ -137,7 +138,7 @@ const CrudFormModal = ({
                 {customFields({ form, setForm })}
               </div>
             )}
-            {sections.length > 1 && (
+            {showSectionPager && sections.length > 1 && (
               <div className="modal-pager" aria-label="Navegação entre seções">
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => gotoSection(currentSection - 1)} disabled={currentSection === 0}>◀ Anterior</button>
                 <span className="pager-indicator">Seção {currentSection + 1} de {sections.length}</span>

@@ -31,6 +31,7 @@
   transition: transform .12s ease, filter .12s ease;
   display:flex;
   min-height: 140px;
+  width: 100%;
 }
 .crud-card::before{ content:""; position:absolute; inset:0; border-radius:inherit; background:inherit; filter:blur(10px); opacity:.45; z-index:0 }
 .category-card:hover, .crud-card:hover{ transform: translateY(-1px); filter: brightness(1.03); }
@@ -52,6 +53,7 @@
   z-index:1;
   flex:1;
   height:100%;
+  width:100%;
 }
 
 /* accent bar (shown always for now; could be toggled with .is-active) */
@@ -171,16 +173,26 @@
 .error{border:1px solid var(--err);color:var(--text-1);background:rgba(255,77,94,.06);padding:10px 12px;border-radius:10px}
 
 /* Overcontent help */
-.overcontent{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:1000}
+.overcontent{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:4000}
 .overcontent-card{width:min(560px,92vw);background:rgba(17,26,44,.92);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);max-height:min(86vh,820px);display:flex;flex-direction:column}
 .overcontent-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.overcontent-header h3{margin:0}
+.overcontent-header h3{
+  margin:0;
+  color:#e9efff; /* higher contrast on dark header */
+  font-weight:600;
+}
 .overcontent-body{flex:1;min-height:0;overflow:auto;padding-right:6px}
 .overcontent-body p{margin:.25rem 0 .5rem;color:var(--text-1)}
 .overcontent-body ul{margin:0 0 .25rem 1rem;color:var(--text-1)}
 
 /* Fullscreen variant for double-click expansion */
-.overcontent.fullscreen{ align-items: stretch; justify-content: stretch; padding: 24px; top:64px }
+.overcontent.fullscreen{
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 16px;
+  /* keep below app header (fallback 64px) */
+  top: var(--app-header-offset, 64px);
+}
 .overcontent-card.fullscreen{
   width: 100%;
   height: 100%;
@@ -188,11 +200,30 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(17,26,44,.92);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  /* header height variable to coordinate sticky header and body padding */
+  --overcontent-header-h: 56px;
+}
+.overcontent-card.fullscreen .overcontent-header{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(17,26,44,.98), rgba(17,26,44,.92));
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 12px 16px;
+  min-height: var(--overcontent-header-h);
 }
 .overcontent-card.fullscreen .overcontent-body{
   flex: 1;
   min-height: 0;
   overflow: auto;
+  /* top padding includes header height so first line is never hidden under sticky header */
+  padding: calc(8px + var(--overcontent-header-h)) 16px 16px 16px;
 }
 
 /* Form utilities for complex editors */

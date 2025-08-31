@@ -4,19 +4,24 @@ const db = require('./connection');
 
 async function runMigrations() {
   try {
+    // Minimal output only
     console.log('🔄 Iniciando migrações do banco de dados...');
-    
-    // Ler o arquivo de schema
-    const schemaPath = path.join(__dirname, 'migrations', '001_init.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    // Executar o schema
-    await db.query(schema);
-    
+
+    const migrationsDir = path.join(__dirname, 'migrations');
+    const files = fs
+      .readdirSync(migrationsDir)
+      .filter((f) => f.toLowerCase().endsWith('.sql'))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    for (const file of files) {
+      const fullPath = path.join(migrationsDir, file);
+      const sql = fs.readFileSync(fullPath, 'utf8');
+      if (sql && sql.trim().length > 0) {
+        await db.query(sql);
+      }
+    }
+
     console.log('✅ Migrações aplicadas com sucesso!');
-    console.log('📊 Tabelas criadas: users, activities, tasks');
-    console.log('🔗 Índices e triggers configurados');
-    
   } catch (error) {
     console.error('❌ Erro ao executar migrações:', error);
     process.exit(1);

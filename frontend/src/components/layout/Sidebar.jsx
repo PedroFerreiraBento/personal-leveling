@@ -48,6 +48,14 @@ const Sidebar = ({ open = false }) => {
           <span className="icon">📝</span>
           <span className="label">Notes</span>
         </NavLink>
+        {/* Solicitações de Melhorias */}
+        <NavLink
+          to="/improvements"
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+        >
+          <span className="icon">💡</span>
+          <span className="label">Solicitações</span>
+        </NavLink>
         {/* Configurações (collapsible) at bottom */}
         <button
           type="button"

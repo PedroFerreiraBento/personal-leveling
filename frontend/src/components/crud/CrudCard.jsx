@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom'
 
 // Generic card for listing entities with action buttons
 // Expect an "item" object and callbacks onEdit/onDelete
-const CrudCard = ({ item, title, description, onEdit, onDelete, actions }) => {
+// Accepts optional className to allow feature-level visual customization
+const CrudCard = ({ item, title, description, onEdit, onDelete, actions, className = '' }) => {
   const displayTitle = title ?? item?.name
   const displayDesc = description ?? item?.short_description
   const [expanded, setExpanded] = useState(false)
@@ -36,12 +37,13 @@ const CrudCard = ({ item, title, description, onEdit, onDelete, actions }) => {
     }
   }, [menuOpen])
   return (
-    <div className={"crud-card"}>
+    <div className={`crud-card ${className}`}>
       <div
         className={`crud-inner ${displayDesc ? 'with-fade' : ''}`}
         onDoubleClick={() => setExpanded(true)}
         title="Duplo clique para expandir"
       >
+        <div className="accent-bar" aria-hidden="true" />
         <div className="card-header">
           <h3>{displayTitle}</h3>
           {(onEdit || onDelete) && (

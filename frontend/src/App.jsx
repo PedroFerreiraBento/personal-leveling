@@ -16,6 +16,7 @@ import Tasks from "./components/Tasks";
 import Notes from "./components/Notes";
 import Lancamentos from "./components/Lancamentos";
 import Attributes from "./components/Attributes";
+import Improvements from "./components/Improvements";
 import Profile from "./components/Profile";
 import { Layout } from "./components/layout";
 
@@ -54,6 +55,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/activities" element={<Activities />} />
               <Route path="/attributes" element={<Attributes />} />
+              <Route path="/improvements" element={<Improvements />} />
               <Route path="/lancamentos" element={<Lancamentos />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/notes" element={<Notes />} />

@@ -1,0 +1,51 @@
+/* Feature-scoped styles for Improvements status coloring */
+
+/* Base: we rely on CrudCard's markup with .crud-card > .crud-inner and .accent-bar */
+
+/* in_progress → light blue */
+.crud-card.improvement.status-in_progress{
+  background-image: linear-gradient(135deg, rgba(74,163,255,.28), rgba(63,208,255,.22));
+}
+.crud-card.improvement.status-in_progress .crud-inner{
+  border-color: rgba(74,163,255,.22);
+  box-shadow: inset 0 0 0 1px rgba(74,163,255,.08);
+}
+.crud-card.improvement.status-in_progress .accent-bar{
+  background: linear-gradient(180deg, #60a5fa, #93c5fd);
+}
+
+/* open → gray */
+.crud-card.improvement.status-open{
+  background-image: linear-gradient(135deg, rgba(148,163,184,.22), rgba(203,213,225,.16));
+}
+.crud-card.improvement.status-open .crud-inner{
+  border-color: rgba(148,163,184,.22);
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,.06);
+}
+.crud-card.improvement.status-open .accent-bar{
+  background: linear-gradient(180deg, #a8b3c7, #cbd5e1);
+}
+
+/* resolved → green */
+.crud-card.improvement.status-resolved{
+  background-image: linear-gradient(135deg, rgba(16,185,129,.28), rgba(34,197,94,.18));
+}
+.crud-card.improvement.status-resolved .crud-inner{
+  border-color: rgba(16,185,129,.24);
+  box-shadow: inset 0 0 0 1px rgba(16,185,129,.08);
+}
+.crud-card.improvement.status-resolved .accent-bar{
+  background: linear-gradient(180deg, #34d399, #10b981);
+}
+
+/* rejected → red */
+.crud-card.improvement.status-rejected{
+  background-image: linear-gradient(135deg, rgba(248,113,113,.28), rgba(239,68,68,.2));
+}
+.crud-card.improvement.status-rejected .crud-inner{
+  border-color: rgba(239,68,68,.26);
+  box-shadow: inset 0 0 0 1px rgba(239,68,68,.1);
+}
+.crud-card.improvement.status-rejected .accent-bar{
+  background: linear-gradient(180deg, #f87171, #ef4444);
+}

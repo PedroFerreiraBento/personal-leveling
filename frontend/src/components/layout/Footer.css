@@ -1,3 +1,8 @@
- .app-footer{ position:static; width:100%; margin-top:auto; z-index:100; border-top:1px solid var(--line); background:rgba(12,19,32,.6); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+ .app-footer{ position:static; width:100%; margin-top:auto; z-index:var(--z-footer); border-top:1px solid var(--line); background:rgba(12,19,32,.6); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
  .footer-inner{ max-width:1440px; margin:0 auto; padding:10px var(--space-6); color:var(--text-2); display:flex; align-items:center; gap:var(--space-4); font-size:.85rem; }
- .footer-inner .sep{ width:1px; height:14px; background:var(--line); display:inline-block; }
+  .footer-inner .sep{ width:1px; height:14px; background:var(--line); display:inline-block; }
+ 
+ @media (max-width: 640px){
+   .footer-inner{ flex-wrap: wrap; justify-content: center; text-align:center; gap: var(--space-3); }
+   .footer-inner .sep{ display:none; }
+ }

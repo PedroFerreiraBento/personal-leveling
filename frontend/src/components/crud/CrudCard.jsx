@@ -40,8 +40,12 @@ const CrudCard = ({ item, title, description, onEdit, onDelete, actions, classNa
     <div className={`crud-card ${className}`}>
       <div
         className={`crud-inner ${displayDesc ? 'with-fade' : ''}`}
-        onDoubleClick={() => setExpanded(true)}
-        title="Duplo clique para expandir"
+        onClick={() => setExpanded(true)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(true) } }}
+        tabIndex={0}
+        role="button"
+        title="Clique para expandir"
+        aria-expanded={expanded}
       >
         <div className="accent-bar" aria-hidden="true" />
         <div className="card-header">

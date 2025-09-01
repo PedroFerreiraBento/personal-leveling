@@ -44,6 +44,7 @@ app.use("/api/categories", require("./routes/categories"));
 app.use("/api/attributes", require("./routes/attributes"));
 app.use("/api/lancamentos", require("./routes/lancamentos"));
 app.use("/api/improvements", require("./routes/improvements"));
+app.use("/api/analytics", require("./routes/analytics"));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

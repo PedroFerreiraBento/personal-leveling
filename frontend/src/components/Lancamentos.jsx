@@ -21,6 +21,7 @@ function Lancamentos() {
   const [selectedActivity, setSelectedActivity] = useState(null) // full detail
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notify, setNotify] = useState(null) // { title, message }
   const [showModal, setShowModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -48,13 +49,62 @@ function Lancamentos() {
     durationTargetMeasureKey: '',
   })
 
-  // Inicial: pode carregar mocks do localStorage para persistência simples
+  // Strict period validation: end must be strictly greater than start
+  function validatePeriod(f){
+    try{
+      const start = f.start_at ? new Date(f.start_at) : null
+      const end = f.end_at ? new Date(f.end_at) : null
+      const endEl = document.getElementById('end_at')
+      if (start && end && !isNaN(+start) && !isNaN(+end)) {
+        if (end <= start) {
+          endEl?.setCustomValidity('O fim deve ser maior que o início')
+        } else {
+          endEl?.setCustomValidity('')
+        }
+      } else {
+        endEl?.setCustomValidity('')
+      }
+    } catch {}
+  }
+
+  // Helpers for datetime-local min handling
+  const toLocalDatetimeStr = (d) => {
+    if (!d) return ''
+    const pad = (n) => String(n).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    const mm = pad(d.getMonth() + 1)
+    const dd = pad(d.getDate())
+    const hh = pad(d.getHours())
+    const mi = pad(d.getMinutes())
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`
+  }
+  const addMinutes = (d, m) => new Date(d.getTime() + m * 60000)
+
+  // Inicial: ainda carrega localStorage (fallback) e em seguida busca do servidor
   useEffect(() => {
     try {
       const raw = localStorage.getItem('app:lancamentos')
       if (raw) setItems(JSON.parse(raw))
     } catch {}
   }, [])
+
+  // Carregar do backend para exibir registros reais salvos no banco
+  useEffect(() => {
+    if (!user?.id) return
+    const load = async () => {
+      setLoading(true)
+      try {
+        const { data } = await axios.get(`/api/lancamentos?user_id=${user.id}`)
+        setItems(data.data || [])
+      } catch (e) {
+        console.error('Erro ao listar lançamentos', e)
+        setError('Erro ao carregar lançamentos do servidor')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [user?.id])
 
   useEffect(() => {
     try {
@@ -103,7 +153,11 @@ function Lancamentos() {
 
   const isTimeUnit = (u) => {
     const unit = (u || '').toLowerCase()
-    return unit === 'min' || unit === 'mins' || unit === 'minute' || unit === 'minutes' || unit === 'time' || unit === 'minutos'
+    return ['min','mins','minute','minutes','time','minutos','m'].includes(unit) || isHourUnit(unit) || unit.includes('tempo')
+  }
+  const isHourUnit = (u) => {
+    const unit = (u || '').toLowerCase()
+    return ['h','hr','hrs','hour','hours','hora','horas'].includes(unit)
   }
 
   const openCreate = () => {
@@ -131,8 +185,9 @@ function Lancamentos() {
       short_description: item.short_description || '',
       notes: item.notes || '',
       activity_id: item.activity_id || '',
-      start_at: item.start_at || '',
-      end_at: item.end_at || '',
+      // normalize to datetime-local (local wall time, no timezone suffix)
+      start_at: (()=>{ try { return toLocalDatetimeStr(new Date(item.start_at)) } catch { return item.start_at || '' } })(),
+      end_at: (()=>{ try { return toLocalDatetimeStr(new Date(item.end_at)) } catch { return item.end_at || '' } })(),
       duration_min: item.duration_min ?? 0,
       origin: item.origin || 'manual',
       measures: item.measures || {},
@@ -147,20 +202,44 @@ function Lancamentos() {
 
   const handleSave = async (payload) => {
     try {
-      const { notes, activity_id, start_at, end_at, origin, measures } = payload
+      const { notes, activity_id, start_at, end_at, origin } = payload
+      let { measures } = payload
       // validações mínimas
       if (!activity_id) { setError('Selecione uma atividade'); return }
       if (!start_at || !end_at) { setError('Informe início e fim'); return }
       const start = new Date(start_at)
       const end = new Date(end_at)
-      if (isNaN(+start) || isNaN(+end) || end < start) { setError('Período inválido'); return }
+      if (isNaN(+start) || isNaN(+end) || end <= start) { setError('Período inválido (fim deve ser maior que início)'); return }
 
-      // call backend
+      // normalizar medidas de tempo para minutos
+      if (selectedActivity) {
+        const defs = selectedActivity.measures || []
+        const next = { ...(measures || {}) }
+        for (const m of defs) {
+          const key = m.key
+          const unit = (m.unit || '').toLowerCase()
+          const raw = next[key]
+          if (raw === undefined || raw === null || raw === '') continue
+          const val = Number(raw)
+          if (!isFinite(val)) continue
+          if (isHourUnit(unit)) {
+            next[key] = Math.round(val * 60)
+          } else if (unit === 'seconds' || unit === 'sec' || unit === 's' || unit === 'seg' || unit === 'segundos') {
+            next[key] = Math.round(val / 60)
+          } else {
+            // assume minutos já
+            next[key] = val
+          }
+        }
+        measures = next
+      }
+
+      // call backend with ISO timestamps
       const { data } = await axios.post('/api/lancamentos', {
         user_id: user.id,
         activity_id,
-        start_at,
-        end_at,
+        start_at: start.toISOString(),
+        end_at: end.toISOString(),
         origin,
         notes,
         measures
@@ -175,7 +254,9 @@ function Lancamentos() {
       setDraft({ name: '', short_description: '', notes: '', activity_id: '', start_at: '', end_at: '', duration_min: 0, origin: 'manual', measures: {}, useDurationForMeasure: false, durationTargetMeasureKey: '' })
       setSelectedActivityId('')
     } catch (e) {
-      setError('Erro ao salvar no servidor')
+      const msg = e?.response?.data?.error || 'Erro ao salvar no servidor'
+      setError(msg)
+      setNotify({ title: 'Falha ao salvar lançamento', message: msg })
       console.error(e)
     }
   }
@@ -219,15 +300,28 @@ function Lancamentos() {
         <p>Nenhum lançamento ainda.</p>
       ) : (
         <div className="crud-grid">
-          {filtered.map(item => (
-            <CrudCard
-              key={item.id}
-              item={item}
-              // Como é local, sempre habilitamos as ações
-              onEdit={openEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+          {filtered.map(item => {
+            const act = activities.find(a => a.id === item.activity_id)
+            const actTitle = act?.title || 'Atividade'
+            const fmt = (dt) => {
+              if (!dt) return '—'
+              const d = new Date(dt)
+              if (isNaN(+d)) return String(dt)
+              return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+            }
+            const title = `${actTitle} — ${fmt(item.start_at)} → ${fmt(item.end_at)} (${item.duration_min ?? window.__dur?.computeDurationMins?.(item) ?? '—'} min)`
+            const desc = item.notes || ''
+            return (
+              <CrudCard
+                key={item.id}
+                item={item}
+                title={title}
+                description={desc}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+              />
+            )
+          })}
         </div>
       )}
 
@@ -249,7 +343,7 @@ function Lancamentos() {
               function computeDurationMins(f){
                 const s = f.start_at ? new Date(f.start_at) : null
                 const e = f.end_at ? new Date(f.end_at) : null
-                const ok = s && e && !isNaN(+s) && !isNaN(+e) && e >= s
+                const ok = s && e && !isNaN(+s) && !isNaN(+e) && e > s
                 return ok ? Math.round((e.getTime()-s.getTime())/60000) : 0
               }
               function formatDuration(mins){
@@ -319,6 +413,7 @@ function Lancamentos() {
                       next.measures = { ...(next.measures||{}), [next.durationTargetMeasureKey]: minutes }
                     }
                     setForm(next)
+                    validatePeriod(next)
                   }}
                 />
               </div>
@@ -328,6 +423,7 @@ function Lancamentos() {
                   id="end_at"
                   type="datetime-local"
                   required
+                  min={form.start_at ? toLocalDatetimeStr(addMinutes(new Date(form.start_at), 1)) : undefined}
                   value={form.end_at}
                   onChange={(e)=> {
                     const next = { ...form, end_at: e.target.value }
@@ -336,6 +432,7 @@ function Lancamentos() {
                       next.measures = { ...(next.measures||{}), [next.durationTargetMeasureKey]: minutes }
                     }
                     setForm(next)
+                    validatePeriod(next)
                   }}
                 />
               </div>
@@ -432,6 +529,20 @@ function Lancamentos() {
           </>
         )}
       />
+
+      {notify && (
+        <div className="overcontent" role="dialog" aria-modal="true" aria-label={notify.title} onClick={() => setNotify(null)}>
+          <div className="overcontent-card" onClick={(e)=> e.stopPropagation()}>
+            <div className="overcontent-header">
+              <h3>{notify.title}</h3>
+              <button className="btn btn-ghost close-btn" aria-label="Fechar" onClick={() => setNotify(null)}>✕</button>
+            </div>
+            <div className="overcontent-body">
+              <p>{notify.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </CrudLayout>
   )
 }

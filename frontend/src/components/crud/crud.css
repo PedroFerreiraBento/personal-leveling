@@ -8,11 +8,11 @@
   gap: 12px;
   align-items: center;
 }
-.filter-bar{display:flex;gap:12px;align-items:flex-end;background:rgba(17,26,44,.4);border:1px solid var(--line);border-radius:10px;padding:10px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.filter-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:rgba(17,26,44,.4);border:1px solid var(--line);border-radius:10px;padding:10px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px); width:100%}
 .field{display:flex;flex-direction:column;gap:6px;min-width:160px}
 .field.fill{flex:1}
 .field .lbl{font-size:.8rem;color:var(--text-2)}
-.field input,.field select{height:38px;border:1px solid var(--line);border-radius:8px;background:var(--bg-2);color:var(--text-1);padding:0 10px}
+.field input,.field select{position:static !important; box-sizing:border-box; height:auto; min-height:38px; border:1px solid var(--line);border-radius:8px;background:var(--bg-2);color:var(--text-1);padding:6px 10px}
 .field input:focus,.field select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(0,157,255,.35)}
 .categories-content, .crud-page {
   display: flex;
@@ -20,6 +20,12 @@
   gap: 16px;
 }
 .categories-grid, .crud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;align-items:stretch}
+
+@media (max-width: 640px){
+  .filter-bar{ gap:10px; }
+  .field{ min-width: 120px; }
+  .field.fill{ flex-basis:100%; }
+}
 
 /* Cards */
 .category-card, .crud-card{
@@ -116,8 +122,8 @@
 .back-link:hover { text-decoration: none; background: rgba(255,255,255,0.06); }
 
 /* Modal */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999}
-.category-modal, .crud-modal{width:min(560px,92vw);max-height:min(86vh, 820px);display:flex;flex-direction:column;background:rgba(17,26,44,.9);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.35);contain:layout paint}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal)}
+.category-modal, .crud-modal{width:min(560px,92vw);max-height:min(86vh, 820px);display:flex;flex-direction:column;background:rgba(17,26,44,.94);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.35);contain:layout paint;position:relative;z-index:calc(var(--z-modal) + 1)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;position:sticky;top:0;background:rgba(17,26,44,.96);z-index:1}
 .modal-title h2{margin:0}
 .modal-title .subtitle{display:block;color:var(--text-2);font-size:.9rem;margin-top:4px}
@@ -173,8 +179,8 @@
 .error{border:1px solid var(--err);color:var(--text-1);background:rgba(255,77,94,.06);padding:10px 12px;border-radius:10px}
 
 /* Overcontent help */
-.overcontent{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:4000}
-.overcontent-card{width:min(560px,92vw);background:rgba(17,26,44,.92);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);max-height:min(86vh,820px);display:flex;flex-direction:column}
+.overcontent{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:var(--z-modal)}
+.overcontent-card{width:min(560px,92vw);background:rgba(17,26,44,.95);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);max-height:min(86vh,820px);display:flex;flex-direction:column;position:relative;z-index:calc(var(--z-modal) + 1)}
 .overcontent-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .overcontent-header h3{
   margin:0;
@@ -190,8 +196,8 @@
   align-items: stretch;
   justify-content: stretch;
   padding: 16px;
-  /* keep below app header (fallback 64px) */
-  top: var(--app-header-offset, 64px);
+  /* cover entire viewport; internal header/body handle offsets */
+  top: 0;
 }
 .overcontent-card.fullscreen{
   width: 100%;
@@ -206,6 +212,7 @@
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
   /* header height variable to coordinate sticky header and body padding */
   --overcontent-header-h: 56px;
+  position: relative;
 }
 .overcontent-card.fullscreen .overcontent-header{
   position: sticky;
@@ -225,6 +232,9 @@
   /* top padding includes header height so first line is never hidden under sticky header */
   padding: calc(8px + var(--overcontent-header-h)) 16px 16px 16px;
 }
+
+/* Floating close button always visible */
+/* (close-floating removed; rely on header close button) */
 
 /* Form utilities for complex editors */
 .sep{ border: none; border-top: 1px solid var(--line); margin: 12px 0; }

@@ -1,12 +1,28 @@
 /* Minimal styles for Dashboard */
 
-.dashboard { padding: 24px; }
+.dashboard { padding: 24px; max-width: 100%; overflow-x: hidden; }
 
 .dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap; /* permite quebrar linha quando faltar espaço */
+}
+
+.dashboard-header h1 { margin: 0; flex: 1 1 auto; min-width: 200px; }
+
+.month-switcher {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap; /* mantém junto setas + label */
+}
+
+@media (max-width: 640px) {
+  .dashboard-header { flex-direction: column; align-items: flex-start; }
+  .month-switcher { width: 100%; justify-content: space-between; }
 }
 
 .user-info {

@@ -1,4 +1,4 @@
- .app-sidebar{ width:260px; flex:0 0 260px; position:relative; z-index:20; }
+ .app-sidebar{ width:260px; flex:0 0 260px; position:relative; z-index:var(--z-base); }
 .app-sidebar nav{ position:sticky; top:80px; display:flex; flex-direction:column; gap:var(--space-2); }
 .nav-item{ display:flex; align-items:center; gap:var(--space-4); height:44px; padding:0 var(--space-4); border-radius:12px; color:var(--text-1); text-decoration:none; border:1px solid transparent; }
 .nav-item .icon{ width:20px; text-align:center; opacity:.9; }
@@ -38,7 +38,7 @@
     background:rgba(17,26,44,.95);
     border-right:1px solid var(--line);
     padding: var(--space-7) var(--space-4);
-    z-index: 1000; /* above footer/header */
+    z-index: var(--z-sidebar); /* above footer/header on mobile */
   }
   .app-sidebar.open{ transform:translateX(0); }
   /* Actions pinned to bottom on mobile */

@@ -1,4 +1,4 @@
- .app-header{ position:sticky; top:0; z-index:2000; height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 var(--space-6); background:rgba(12,19,32,.6); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+ .app-header{ position:sticky; top:0; z-index:var(--z-header); height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 var(--space-6); background:rgba(12,19,32,.6); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
   .header-left{ display:flex; align-items:center; gap:var(--space-6); color:var(--text-1); }
   .brand{ display:flex; align-items:center; gap:var(--space-3); color:var(--text-0); text-decoration:none; }
   .brand-dot{ width:12px; height:12px; border-radius:9999px; background:linear-gradient(135deg,var(--pri),var(--pri-2)); box-shadow:0 0 12px rgba(0,157,255,.5); position:relative; }
@@ -24,7 +24,7 @@
   box-shadow: 0 20px 60px rgba(0,0,0,.55);
   border-radius: 14px;
   padding: 12px;
-  z-index: 7000;
+  z-index: var(--z-popover);
   animation: fadeInUp .18s ease-out;
 }
 .user-menu-content:focus-within{ outline: 2px solid rgba(0,157,255,.35); outline-offset: 2px; }
